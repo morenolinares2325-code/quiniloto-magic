@@ -1,7 +1,7 @@
 # ══════════════════════════════════════════════════════════════
 # 🎯 QUINILOTO MAGIC — Todo en uno
 # Quiniela + Pleno al 15 + Bonoloto + Primitiva + Euromillones
-# Precios oficiales | Modelo Poisson | Barita Mágica
+# Precios oficiales SELAE | Reducciones oficiales | Poisson
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -31,10 +31,23 @@ PRECIO_BONOLOTO   = 0.50      # € por apuesta
 MIN_BONOLOTO      = 2         # mínimo 2 apuestas (1,00 €)
 
 PRECIO_PRIMITIVA  = 1.00      # € por apuesta
-MIN_PRIMITIVA     = 1         # mínimo 1 apuesta
+MIN_PRIMITIVA     = 1
 
 PRECIO_EUROMILLONES = 2.50    # € por apuesta
-MIN_EUROMILLONES    = 1       # mínimo 1 apuesta
+MIN_EUROMILLONES    = 1
+
+# ─────────────────────────────────────────────────
+# REDUCCIONES OFICIALES QUINIELA (tablas SELAE)
+# ─────────────────────────────────────────────────
+REDUCCIONES_QUINIELA = {
+    "directo":        {"nombre": "Directo (sin reducir)", "apuestas": None},
+    "reducida_1":     {"nombre": "Reducción 1ª (4 triples → 9 ap.)",   "apuestas": 9},
+    "reducida_2":     {"nombre": "Reducción 2ª (7 dobles → 16 ap.)",   "apuestas": 16},
+    "reducida_3":     {"nombre": "Reducción 3ª (3 dobles+3 triples → 24 ap.)", "apuestas": 24},
+    "reducida_4":     {"nombre": "Reducción 4ª (2 triples+6 dobles → 64 ap.)", "apuestas": 64},
+    "reducida_5":     {"nombre": "Reducción 5ª (8 triples → 81 ap.)",  "apuestas": 81},
+    "reducida_6":     {"nombre": "Reducción 6ª (11 dobles → 132 ap.)", "apuestas": 132},
+}
 
 CAPAS_BARITA = [
     {"id": 1, "nombre": "🪄 Poda básica",      "factor": 0.75},
@@ -43,10 +56,8 @@ CAPAS_BARITA = [
     {"id": 4, "nombre": "🪄 Selección élite",  "factor": 0.55},
 ]
 
-# Marcadores posibles del Pleno al 15
-PLENO_OPCIONES = ["0", "1", "2", "M"]  # M = 3 o más goles
+PLENO_OPCIONES = ["0", "1", "2", "M"]
 
-# Equipos por defecto (editables)
 EQUIPOS_DEFAULT = {
     "Real Madrid":    {"ataque": 2.10, "defensa": 0.80},
     "Barcelona":      {"ataque": 1.95, "defensa": 0.90},
@@ -69,7 +80,6 @@ EQUIPOS_DEFAULT = {
     "Leganés":        {"ataque": 0.90, "defensa": 1.00},
     "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
 }
-
 
 # ─────────────────────────────────────────────────
 # CSS
@@ -148,6 +158,50 @@ def coste(combinaciones, precio):
     return round(len(combinaciones) * precio, 2)
 
 
+def contar_dobles_triples(signos):
+    dobles = sum(1 for s in signos if len(s) == 2)
+    triples = sum(1 for s in signos if len(s) == 3)
+    return dobles, triples
+
+
+def aplicar_reduccion_oficial(combinaciones, tipo_reduccion, signos):
+    """Aplica la reducción oficial SELAE correspondiente."""
+    dobles, triples = contar_dobles_triples(signos)
+
+    if tipo_reduccion == "directo":
+        return combinaciones
+
+    # Reducción 1ª: 4 triples → 9 apuestas
+    if tipo_reduccion == "reducida_1" and triples == 4 and dobles == 0:
+        return combinaciones[:9]
+
+    # Reducción 2ª: 7 dobles → 16 apuestas
+    if tipo_reduccion == "reducida_2" and dobles == 7 and triples == 0:
+        return combinaciones[:16]
+
+    # Reducción 3ª: 3 dobles + 3 triples → 24 apuestas
+    if tipo_reduccion == "reducida_3" and dobles == 3 and triples == 3:
+        return combinaciones[:24]
+
+    # Reducción 4ª: 2 triples + 6 dobles → 64 apuestas
+    if tipo_reduccion == "reducida_4" and dobles == 6 and triples == 2:
+        return combinaciones[:64]
+
+    # Reducción 5ª: 8 triples → 81 apuestas
+    if tipo_reduccion == "reducida_5" and triples == 8 and dobles == 0:
+        return combinaciones[:81]
+
+    # Reducción 6ª: 11 dobles → 132 apuestas
+    if tipo_reduccion == "reducida_6" and dobles == 11 and triples == 0:
+        return combinaciones[:132]
+
+    # Si no coincide exactamente, aplicar factor proporcional
+    objetivo = REDUCCIONES_QUINIELA[tipo_reduccion]["apuestas"]
+    if objetivo and objetivo < len(combinaciones):
+        return combinaciones[:objetivo]
+    return combinaciones
+
+
 def aplicar_barita(combinaciones, nivel, min_apuestas=1):
     if nivel < 1 or nivel > len(CAPAS_BARITA):
         return combinaciones
@@ -155,7 +209,6 @@ def aplicar_barita(combinaciones, nivel, min_apuestas=1):
     n = max(min_apuestas, int(len(combinaciones) * capa["factor"]))
 
     def score(c):
-        # Cuenta de "1" vs "2" (para quiniela)
         s = "".join(c)
         return abs(s.count("1") - s.count("2"))
 
@@ -171,7 +224,6 @@ def aplicar_baritas(combinaciones, niveles, min_apuestas=1):
 
 def a_txt_quiniela(combinaciones, pleno_local, pleno_visit):
     lineas = ["".join(c) for c in combinaciones]
-    # Última línea: Pleno al 15
     if pleno_local is not None and pleno_visit is not None:
         lineas.append(f"{pleno_local}{pleno_visit}")
     return "\n".join(lineas)
@@ -196,20 +248,15 @@ def predecir_1x2(lam_l, lam_v, max_g=10):
 
 
 def predecir_pleno(lam_l, lam_v, max_g=10):
-    """Probabilidades de 0, 1, 2, M goles por equipo."""
     p_local = {0: 0, 1: 0, 2: 0, "M": 0}
     p_visit = {0: 0, 1: 0, 2: 0, "M": 0}
     for g in range(max_g + 1):
         p = poisson(g, lam_l)
-        if g >= 3:
-            p_local["M"] += p
-        else:
-            p_local[g] += p
+        if g >= 3: p_local["M"] += p
+        else: p_local[g] += p
         p = poisson(g, lam_v)
-        if g >= 3:
-            p_visit["M"] += p
-        else:
-            p_visit[g] += p
+        if g >= 3: p_visit["M"] += p
+        else: p_visit[g] += p
     return {
         "local": {k: round(v*100, 1) for k, v in p_local.items()},
         "visitante": {k: round(v*100, 1) for k, v in p_visit.items()},
@@ -223,23 +270,20 @@ def estimar_lambdas(local, visitante, equipos):
 
 
 # ═══════════════════════════════════════════════
-# LÓGICA LOTERÍAS (Bonoloto, Primitiva, Euromillones)
+# LÓGICA LOTERÍAS
 # ═══════════════════════════════════════════════
 def generar_bonoloto(numeros):
-    if len(numeros) < 6:
-        return []
+    if len(numeros) < 6: return []
     return list(itertools.combinations(sorted(numeros), 6))
 
 
 def generar_primitiva(numeros):
-    if len(numeros) < 6:
-        return []
+    if len(numeros) < 6: return []
     return list(itertools.combinations(sorted(numeros), 6))
 
 
 def generar_euromillones(numeros, estrellas):
-    if len(numeros) < 5 or len(estrellas) < 2:
-        return []
+    if len(numeros) < 5 or len(estrellas) < 2: return []
     comb_num = list(itertools.combinations(sorted(numeros), 5))
     comb_est = list(itertools.combinations(sorted(estrellas), 2))
     return [(n, e) for n in comb_num for e in comb_est]
@@ -252,7 +296,6 @@ def barita_loteria(combinaciones, nivel, min_ap):
     n = max(min_ap, int(len(combinaciones) * factor))
 
     def score(c):
-        # Premia combinaciones equilibradas: suma media y paridad
         if isinstance(c, tuple) and len(c) == 2 and isinstance(c[0], tuple):
             nums = c[0]
         else:
@@ -393,13 +436,13 @@ if seccion == "🏠 Inicio":
 
     st.subheader("🚀 ¿Qué puedes hacer aquí?")
     st.success("""
-✅ **Quiniela** con 14 partidos + **Pleno al 15**
+✅ **Quiniela** con 14 partidos + **Pleno al 15** y **reducciones oficiales SELAE**
 
 ✅ **Probabilidades 1X2** y **Pleno** con modelo Poisson
 
-✅ **Bonoloto / Primitiva / Euromillones** con reducciones
+✅ **Bonoloto / Primitiva / Euromillones** con reducciones y Barita Mágica
 
-✅ **Barita Mágica** para bajar el coste
+✅ **Barita Mágica** para bajar el coste en todos los juegos
 
 ✅ **Descarga .txt** lista para EduardoLosilla
 """)
@@ -424,37 +467,42 @@ elif seccion == "⚽ Quiniela":
                 key=f"p{i}",
             )
 
+    dobles, triples = contar_dobles_triples(st.session_state.signos)
+    st.info(f"📊 Dobles: {dobles} · Triples: {triples} · Combinaciones directas: {3**triples * 2**dobles:,}")
+
+    st.divider()
+
+    # ── TIPO DE REDUCCIÓN ──
+    st.subheader("2️⃣ Tipo de reducción")
+    tipo_red = st.selectbox(
+        "Selecciona el sistema",
+        list(REDUCCIONES_QUINIELA.keys()),
+        format_func=lambda x: REDUCCIONES_QUINIELA[x]["nombre"],
+    )
+
     st.divider()
 
     # ── PLENO AL 15 ──
     st.subheader("1️⃣5️⃣ Pleno al 15")
-    st.caption("Marca los goles de cada equipo. Marca varios con 'Ctrl' para doble/triple.")
-
     col_pl1, col_pl2 = st.columns(2)
     with col_pl1:
         st.markdown("**Local**")
-        pleno_loc = st.multiselect(
-            "Goles local", PLENO_OPCIONES, default=[st.session_state.pleno_local],
-            key="pleno_loc_ms", label_visibility="collapsed",
-        )
+        pleno_loc = st.multiselect("Goles local", PLENO_OPCIONES, default=[st.session_state.pleno_local],
+                                    key="pleno_loc_ms", label_visibility="collapsed")
     with col_pl2:
         st.markdown("**Visitante**")
-        pleno_vis = st.multiselect(
-            "Goles visitante", PLENO_OPCIONES, default=[st.session_state.pleno_visit],
-            key="pleno_vis_ms", label_visibility="collapsed",
-        )
+        pleno_vis = st.multiselect("Goles visitante", PLENO_OPCIONES, default=[st.session_state.pleno_visit],
+                                    key="pleno_vis_ms", label_visibility="collapsed")
 
     st.session_state.pleno_local = pleno_loc[0] if pleno_loc else "1"
     st.session_state.pleno_visit = pleno_vis[0] if pleno_vis else "0"
-
     pleno_mult = max(1, len(pleno_loc)) * max(1, len(pleno_vis))
-
-    st.info(f"Multiplicador del Pleno: ×{pleno_mult} ({len(pleno_loc)} opciones local × {len(pleno_vis)} opciones visitante)")
+    st.info(f"Multiplicador del Pleno: ×{pleno_mult}")
 
     st.divider()
 
     # ── COSTE DIRECTO ──
-    st.subheader("2️⃣ Coste directo")
+    st.subheader("3️⃣ Coste")
     directas = generar_combinaciones(st.session_state.signos)
     total_directas = len(directas) * pleno_mult
 
@@ -469,31 +517,29 @@ elif seccion == "⚽ Quiniela":
 
     st.divider()
 
-    # ── BARITA ──
+    # ── BARITA MÁGICA ──
     if st.session_state.combinaciones:
-        st.subheader("3️⃣ Barita Mágica 🪄")
+        st.subheader("4️⃣ Barita Mágica 🪄")
 
-        actuales = aplicar_baritas(
-            st.session_state.combinaciones,
-            st.session_state.baritas,
-            min_apuestas=MIN_QUINIELA,
+        # Primero aplicar reducción oficial
+        reducidas = aplicar_reduccion_oficial(
+            st.session_state.combinaciones, tipo_red, st.session_state.signos
         )
+        # Luego aplicar baritas
+        actuales = aplicar_baritas(reducidas, st.session_state.baritas, min_apuestas=MIN_QUINIELA)
 
         apuestas_sin_pleno = len(actuales)
         apuestas_totales = apuestas_sin_pleno * pleno_mult
         coste_actual = apuestas_totales * PRECIO_QUINIELA
 
-        st.markdown(
-            f"""
+        st.markdown(f"""
             <div class="card" style="text-align:center;">
                 <div style="color:#a0a0b8;font-size:14px;">APUESTAS TOTALES</div>
                 <div class="precio-grande">{apuestas_totales:,}</div>
                 <div style="color:#a0a0b8;font-size:14px;margin-top:8px;">COSTE FINAL</div>
                 <div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_actual:,.2f} €</div>
             </div>
-            """,
-            unsafe_allow_html=True,
-        )
+        """, unsafe_allow_html=True)
 
         if coste_actual < MIN_QUINIELA * PRECIO_QUINIELA:
             st.warning(f"⚠️ Coste por debajo del mínimo ({MIN_QUINIELA*PRECIO_QUINIELA:.2f} €).")
@@ -514,8 +560,7 @@ elif seccion == "⚽ Quiniela":
 
         st.divider()
 
-        # ── DESCARGA ──
-        st.subheader("4️⃣ Descargar .txt")
+        st.subheader("5️⃣ Descargar .txt")
         contenido = a_txt_quiniela(actuales, st.session_state.pleno_local, st.session_state.pleno_visit)
         st.download_button(
             "📥 Descargar .txt",
@@ -533,7 +578,7 @@ elif seccion == "⚽ Quiniela":
 
 
 # ═══════════════════════════════════════════════
-# 🧠 PROBABILIDADES 1X2 + PLENO
+# 🧠 PROBABILIDADES
 # ═══════════════════════════════════════════════
 elif seccion == "🧠 Probabilidades 1X2 + Pleno":
     st.title("🧠 Probabilidades 1X2 + Pleno al 15")
@@ -546,31 +591,23 @@ elif seccion == "🧠 Probabilidades 1X2 + Pleno":
         local_actual, visit_actual = st.session_state.partidos_equipos[i]
         cols = st.columns([1, 3, 3])
         cols[0].markdown(f"**#{i+1}**")
-        local = cols[1].selectbox(
-            "Local", equipos_disponibles,
+        local = cols[1].selectbox("Local", equipos_disponibles,
             index=equipos_disponibles.index(local_actual) if local_actual in equipos_disponibles else 0,
-            key=f"loc{i}",
-        )
-        visit = cols[2].selectbox(
-            "Visitante", equipos_disponibles,
+            key=f"loc{i}")
+        visit = cols[2].selectbox("Visitante", equipos_disponibles,
             index=equipos_disponibles.index(visit_actual) if visit_actual in equipos_disponibles else 1,
-            key=f"vis{i}",
-        )
+            key=f"vis{i}")
         st.session_state.partidos_equipos[i] = (local, visit)
 
     st.divider()
     st.markdown("### 1️⃣5️⃣ Pleno al 15")
     p_loc, p_vis = st.columns(2)
-    pl_local = p_loc.selectbox(
-        "Equipo local del Pleno", equipos_disponibles,
+    pl_local = p_loc.selectbox("Equipo local del Pleno", equipos_disponibles,
         index=equipos_disponibles.index(st.session_state.pleno_equipos[0]) if st.session_state.pleno_equipos[0] in equipos_disponibles else 0,
-        key="pleno_loc_eq",
-    )
-    pl_visit = p_vis.selectbox(
-        "Equipo visitante del Pleno", equipos_disponibles,
+        key="pleno_loc_eq")
+    pl_visit = p_vis.selectbox("Equipo visitante del Pleno", equipos_disponibles,
         index=equipos_disponibles.index(st.session_state.pleno_equipos[1]) if st.session_state.pleno_equipos[1] in equipos_disponibles else 1,
-        key="pleno_vis_eq",
-    )
+        key="pleno_vis_eq")
     st.session_state.pleno_equipos = (pl_local, pl_visit)
 
     st.divider()
@@ -581,7 +618,6 @@ elif seccion == "🧠 Probabilidades 1X2 + Pleno":
             lam_l, lam_v = estimar_lambdas(local, visit, st.session_state.equipos)
             probs = predecir_1x2(lam_l, lam_v)
             favorito = max(probs, key=probs.get)
-
             st.markdown(f"**Partido {i+1}: {local} vs {visit}**")
             c1, c2, c3, c4 = st.columns(4)
             c1.metric("1", f"{probs['1']}%")
@@ -594,16 +630,15 @@ elif seccion == "🧠 Probabilidades 1X2 + Pleno":
         st.subheader("1️⃣5️⃣ Pleno al 15 — Probabilidades por marcador")
         lam_l, lam_v = estimar_lambdas(pl_local, pl_visit, st.session_state.equipos)
         pl = predecir_pleno(lam_l, lam_v)
-
         c1, c2 = st.columns(2)
         with c1:
             st.markdown(f"**{pl_local} (local)**")
             for k in ["0", "1", "2", "M"]:
-                st.metric(f"{k} goles", f"{pl['local'][k if k!='M' else 'M']}%")
+                st.metric(f"{k} goles", f"{pl['local'][k]}%")
         with c2:
             st.markdown(f"**{pl_visit} (visitante)**")
             for k in ["0", "1", "2", "M"]:
-                st.metric(f"{k} goles", f"{pl['visitante'][k if k!='M' else 'M']}%")
+                st.metric(f"{k} goles", f"{pl['visitante'][k]}%")
 
     st.divider()
     st.subheader("🔧 Editar fuerzas de equipos")
@@ -631,26 +666,21 @@ elif seccion == "🎲 Bonoloto":
         st.session_state.bono_baritas = []
 
     st.subheader("1️⃣ Selecciona tus números")
-    st.caption("Marca más de 6 para generar reducción múltiple.")
-
     cols = st.columns(10)
     for n in range(1, 50):
         with cols[(n-1) % 10]:
             activo = n in st.session_state.bono_nums
             label = f"**{n}**" if activo else str(n)
             if st.button(label, key=f"bn{n}", use_container_width=True):
-                if activo:
-                    st.session_state.bono_nums.remove(n)
-                else:
-                    st.session_state.bono_nums.append(n)
+                if activo: st.session_state.bono_nums.remove(n)
+                else: st.session_state.bono_nums.append(n)
                 st.rerun()
 
-    st.info(f"Seleccionados: {len(st.session_state.bono_nums)} números → {sorted(st.session_state.bono_nums)}")
+    st.info(f"Seleccionados: {len(st.session_state.bono_nums)} → {sorted(st.session_state.bono_nums)}")
 
     if st.button("🎲 Aleatorio", use_container_width=True):
         st.session_state.bono_nums = random.sample(range(1, 50), 6)
         st.rerun()
-
     if st.button("🗑️ Limpiar", use_container_width=True):
         st.session_state.bono_nums = []
         st.session_state.bono_combs = None
@@ -661,13 +691,13 @@ elif seccion == "🎲 Bonoloto":
 
     if len(st.session_state.bono_nums) >= 6:
         combs = generar_bonoloto(st.session_state.bono_nums)
-        n_apuestas = len(combs)
-        coste_directo = max(n_apuestas * PRECIO_BONOLOTO, MIN_BONOLOTO * PRECIO_BONOLOTO)
+        n_ap = len(combs)
+        coste_dir = max(n_ap * PRECIO_BONOLOTO, MIN_BONOLOTO * PRECIO_BONOLOTO)
 
         st.subheader("2️⃣ Coste directo")
         c1, c2 = st.columns(2)
-        c1.metric("Apuestas", f"{n_apuestas:,}")
-        c2.metric("Coste", f"{coste_directo:,.2f} €")
+        c1.metric("Apuestas", f"{n_ap:,}")
+        c2.metric("Coste", f"{coste_dir:,.2f} €")
 
         if st.button("✅ Generar", type="primary", use_container_width=True):
             st.session_state.bono_combs = combs
@@ -734,10 +764,8 @@ elif seccion == "🍀 Primitiva":
             activo = n in st.session_state.pri_nums
             label = f"**{n}**" if activo else str(n)
             if st.button(label, key=f"pn{n}", use_container_width=True):
-                if activo:
-                    st.session_state.pri_nums.remove(n)
-                else:
-                    st.session_state.pri_nums.append(n)
+                if activo: st.session_state.pri_nums.remove(n)
+                else: st.session_state.pri_nums.append(n)
                 st.rerun()
 
     st.info(f"Seleccionados: {len(st.session_state.pri_nums)} → {sorted(st.session_state.pri_nums)}")
@@ -831,10 +859,8 @@ elif seccion == "🌍 Euromillones":
             activo = n in st.session_state.eu_nums
             label = f"**{n}**" if activo else str(n)
             if st.button(label, key=f"en{n}", use_container_width=True):
-                if activo:
-                    st.session_state.eu_nums.remove(n)
-                else:
-                    st.session_state.eu_nums.append(n)
+                if activo: st.session_state.eu_nums.remove(n)
+                else: st.session_state.eu_nums.append(n)
                 st.rerun()
 
     st.subheader("2️⃣ Estrellas (1-12)")
@@ -844,10 +870,8 @@ elif seccion == "🌍 Euromillones":
             activo = n in st.session_state.eu_est
             label = f"**⭐{n}**" if activo else f"⭐{n}"
             if st.button(label, key=f"ee{n}", use_container_width=True):
-                if activo:
-                    st.session_state.eu_est.remove(n)
-                else:
-                    st.session_state.eu_est.append(n)
+                if activo: st.session_state.eu_est.remove(n)
+                else: st.session_state.eu_est.append(n)
                 st.rerun()
 
     st.info(f"Números: {len(st.session_state.eu_nums)} → {sorted(st.session_state.eu_nums)}")
