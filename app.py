@@ -1,12 +1,12 @@
 # ══════════════════════════════════════════════════════════════
 # 🎯 QUINILOTO MAGIC — Todo en uno
 # Precio oficial apuesta: 0,75 € | Mínimo boleto: 2 apuestas (1,50 €)
+# Modelo probabilidades: Poisson (sin API externa)
 # ══════════════════════════════════════════════════════════════
 
 import itertools
+import math
 import streamlit as st
-import requests
-from datetime import datetime
 
 # ─────────────────────────────────────────────────
 # CONFIG
@@ -19,12 +19,12 @@ st.set_page_config(
 )
 
 # ─────────────────────────────────────────────────
-# CONSTANTES OFICIALES
+# CONSTANTES
 # ─────────────────────────────────────────────────
 PASSWORD = "2325"
-PRECIO_APUESTA = 0.75          # € por columna (oficial SELAE)
-MIN_APUESTAS = 2                # mínimo para validar boleto
-COSTE_MINIMO = MIN_APUESTAS * PRECIO_APUESTA  # 1,50 €
+PRECIO_APUESTA = 0.75
+MIN_APUESTAS = 2
+COSTE_MINIMO = MIN_APUESTAS * PRECIO_APUESTA
 
 CAPAS_BARITA = [
     {"id": 1, "nombre": "🪄 Poda básica",      "factor": 0.75},
@@ -33,8 +33,33 @@ CAPAS_BARITA = [
     {"id": 4, "nombre": "🪄 Selección élite",  "factor": 0.55},
 ]
 
+# Equipos por defecto con fuerzas (editables desde la interfaz)
+EQUIPOS_DEFAULT = {
+    "Real Madrid":    {"ataque": 2.10, "defensa": 0.80},
+    "Barcelona":      {"ataque": 1.95, "defensa": 0.90},
+    "Atlético":       {"ataque": 1.50, "defensa": 0.70},
+    "Sevilla":        {"ataque": 1.40, "defensa": 1.00},
+    "Valencia":       {"ataque": 1.30, "defensa": 1.10},
+    "Betis":          {"ataque": 1.40, "defensa": 1.00},
+    "Villarreal":     {"ataque": 1.50, "defensa": 0.90},
+    "Athletic":       {"ataque": 1.20, "defensa": 0.90},
+    "Real Sociedad":  {"ataque": 1.30, "defensa": 0.90},
+    "Girona":         {"ataque": 1.60, "defensa": 1.00},
+    "Osasuna":        {"ataque": 1.10, "defensa": 1.00},
+    "Celta":          {"ataque": 1.20, "defensa": 1.10},
+    "Rayo":           {"ataque": 1.10, "defensa": 1.00},
+    "Mallorca":       {"ataque": 1.00, "defensa": 0.95},
+    "Getafe":         {"ataque": 0.95, "defensa": 0.90},
+    "Alavés":         {"ataque": 1.05, "defensa": 1.00},
+    "Las Palmas":     {"ataque": 1.10, "defensa": 1.15},
+    "Espanyol":       {"ataque": 1.00, "defensa": 1.05},
+    "Leganés":        {"ataque": 0.90, "defensa": 1.00},
+    "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
+}
+
+
 # ─────────────────────────────────────────────────
-# CSS GLOBAL
+# CSS
 # ─────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -42,9 +67,7 @@ st.markdown("""
 
 html, body, [class*="css"] { font-family: 'Inter', sans-serif; }
 
-.stApp {
-    background: radial-gradient(circle at 20% 0%, #14152a 0%, #0a0b15 60%);
-}
+.stApp { background: radial-gradient(circle at 20% 0%, #14152a 0%, #0a0b15 60%); }
 
 h1, h2, h3 { color: #ffffff; letter-spacing: -0.5px; }
 
@@ -109,27 +132,17 @@ section[data-testid="stSidebar"] {
     color: #FFD700;
     margin-bottom: 8px;
 }
-.login-sub {
-    color: #a0a0b8;
-    font-size: 14px;
-    margin-bottom: 32px;
-}
+.login-sub { color: #a0a0b8; font-size: 14px; margin-bottom: 32px; }
 
-.partido-row {
-    display: flex;
-    align-items: center;
-    padding: 10px 16px;
-    background: #14152a;
-    border-radius: 10px;
-    margin-bottom: 8px;
-    border-left: 3px solid #FFD700;
-}
+.prob-1 { color: #4ade80; font-weight: 700; }
+.prob-X { color: #facc15; font-weight: 700; }
+.prob-2 { color: #f87171; font-weight: 700; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─────────────────────────────────────────────────
-# FUNCIONES DE LÓGICA
+# LÓGICA QUINIELA
 # ─────────────────────────────────────────────────
 def generar_combinaciones(signos):
     opciones = [list(s) for s in signos]
@@ -166,41 +179,42 @@ def a_txt(combinaciones):
 
 
 # ─────────────────────────────────────────────────
-# API SELAE — Última jornada oficial
+# LÓGICA POISSON — Probabilidades 1X2
 # ─────────────────────────────────────────────────
-@st.cache_data(ttl=3600)
-def obtener_ultima_jornada():
-    """
-    Consulta la API pública de SELAE para obtener la última jornada
-    de La Quiniela. Devuelve dict con: jornada, fecha, partidos, resultados.
-    Si falla, devuelve None.
-    """
-    try:
-        url = "https://www.loteriasyapuestas.es/servicios/buscadorSorteos"
-        params = {
-            "game_id": "LAQU",
-            "celebrados": "true",
-            "fechaInicioInclusiva": "01012025",
-            "fechaFinInclusiva": datetime.now().strftime("%d%m%Y"),
-            "numero": "1",
-        }
-        r = requests.get(url, params=params, timeout=10)
-        r.raise_for_status()
-        data = r.json()
+def poisson_probability(k, lam):
+    return (lam ** k) * math.exp(-lam) / math.factorial(k)
 
-        if not data:
-            return None
 
-        ultimo = data[0] if isinstance(data, list) else data
+def predecir_partido(lambda_local, lambda_visitante, max_goles=10):
+    prob_1 = prob_X = prob_2 = 0.0
+    for gl in range(max_goles + 1):
+        for gv in range(max_goles + 1):
+            p = poisson_probability(gl, lambda_local) * poisson_probability(gv, lambda_visitante)
+            if gl > gv:
+                prob_1 += p
+            elif gl == gv:
+                prob_X += p
+            else:
+                prob_2 += p
+    return {
+        "1": round(prob_1 * 100, 1),
+        "X": round(prob_X * 100, 1),
+        "2": round(prob_2 * 100, 1),
+    }
 
-        return {
-            "jornada": ultimo.get("numero", "—"),
-            "fecha": ultimo.get("fecha_sorteo", "—"),
-            "combinacion": ultimo.get("combinacion", "—"),
-            "recaudacion": ultimo.get("recaudacion", "—"),
-        }
-    except Exception as e:
-        return {"error": str(e)}
+
+def estimar_lambdas(equipo_local, equipo_visitante, equipos):
+    local = equipos.get(equipo_local, {"ataque": 1.3, "defensa": 1.0})
+    visit = equipos.get(equipo_visitante, {"ataque": 1.3, "defensa": 1.0})
+
+    # Local juega en casa (factor 1.15), visitante fuera (factor 0.85)
+    lam_local = local["ataque"] * visit["defensa"] * 1.15
+    lam_visit = visit["ataque"] * local["defensa"] * 0.85
+    return round(lam_local, 2), round(lam_visit, 2)
+
+
+def signo_mas_probable(probs):
+    return max(probs, key=probs.get)
 
 
 # ─────────────────────────────────────────────────
@@ -240,6 +254,26 @@ if "combinaciones" not in st.session_state:
     st.session_state.combinaciones = None
 if "baritas" not in st.session_state:
     st.session_state.baritas = []
+if "equipos" not in st.session_state:
+    st.session_state.equipos = dict(EQUIPOS_DEFAULT)
+if "partidos_equipos" not in st.session_state:
+    # 14 partidos por defecto (local, visitante)
+    st.session_state.partidos_equipos = [
+        ("Real Madrid", "Barcelona"),
+        ("Atlético", "Sevilla"),
+        ("Valencia", "Betis"),
+        ("Villarreal", "Athletic"),
+        ("Real Sociedad", "Girona"),
+        ("Osasuna", "Celta"),
+        ("Rayo", "Mallorca"),
+        ("Getafe", "Alavés"),
+        ("Las Palmas", "Espanyol"),
+        ("Leganés", "Valladolid"),
+        ("Real Madrid", "Atlético"),
+        ("Barcelona", "Sevilla"),
+        ("Betis", "Villarreal"),
+        ("Athletic", "Valencia"),
+    ]
 
 
 # ─────────────────────────────────────────────────
@@ -253,7 +287,7 @@ with st.sidebar:
         [
             "🏠 Inicio",
             "⚽ Quiniela",
-            "📅 Jornada actual",
+            "🧠 Probabilidades 1X2",
             "🎲 Bonoloto",
             "🍀 Primitiva",
             "🌍 Euromillones",
@@ -263,7 +297,7 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.markdown("---")
-    st.caption(f"Precio por apuesta: {PRECIO_APUESTA} €")
+    st.caption(f"Precio apuesta: {PRECIO_APUESTA} €")
     st.caption(f"Mínimo boleto: {COSTE_MINIMO:.2f} €")
     if st.button("🚪 Cerrar sesión", use_container_width=True):
         st.session_state.autenticado = False
@@ -271,7 +305,7 @@ with st.sidebar:
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 🏠 INICIO
+# 🏠 INICIO
 # ═════════════════════════════════════════════════
 if seccion == "🏠 Inicio":
     st.markdown('<p class="main-header">🎯 Quiniloto Magic</p>', unsafe_allow_html=True)
@@ -279,14 +313,12 @@ if seccion == "🏠 Inicio":
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("⚽ Quiniela",     "14 partidos")
-    c2.metric("🎲 Bonoloto",     "6/49")
-    c3.metric("🍀 Primitiva",    "6/49")
-    c4.metric("🌍 Euromillones", "5/50 + 2/12")
+    c2.metric("🧠 Poisson",      "1X2 en vivo")
+    c3.metric("🎲 Loterías",     "3 módulos")
+    c4.metric("🪄 Barita",       "4 capas")
 
     st.divider()
 
-    # ── Info oficial ──
-    st.subheader("📋 Información oficial")
     info1, info2, info3 = st.columns(3)
     info1.metric("Precio por apuesta", f"{PRECIO_APUESTA:.2f} €")
     info2.metric("Mínimo por boleto",  f"{COSTE_MINIMO:.2f} €")
@@ -300,15 +332,13 @@ if seccion == "🏠 Inicio":
         st.success("""
 ✅ Configurar tu quiniela partido a partido
 
+✅ Calcular las **probabilidades 1X2** con modelo Poisson
+
 ✅ Aplicar dobles, triples y reducciones
 
-✅ Calcular el coste al instante con precio oficial (0,75 €)
+✅ Usar la **Barita Mágica** para bajar el coste
 
-✅ Usar la **Barita Mágica** para bajar el precio
-
-✅ Descargar tu archivo .txt listo para comprar
-
-✅ Consultar la jornada oficial más reciente
+✅ Descargar tu `.txt` listo para EduardoLosilla
 """)
     with der:
         st.info("""
@@ -318,7 +348,7 @@ if seccion == "🏠 Inicio":
 
 ⚽ Quiniela
 
-📅 Jornada actual
+🧠 Probabilidades 1X2
 
 🎲 Bonoloto
 
@@ -330,7 +360,6 @@ if seccion == "🏠 Inicio":
 """)
 
     st.divider()
-
     st.subheader("💶 Costes rápidos (precio oficial 0,75 €)")
     tabla = [
         ("1 doble", 2, 1.50), ("2 dobles", 4, 3.00),
@@ -345,13 +374,12 @@ if seccion == "🏠 Inicio":
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: ⚽ QUINIELA
+# ⚽ QUINIELA
 # ═════════════════════════════════════════════════
 elif seccion == "⚽ Quiniela":
     st.title("⚽ Quiniela")
-    st.caption(f"Configura los 14 partidos · Precio oficial {PRECIO_APUESTA} €/apuesta · Mínimo {COSTE_MINIMO:.2f} €")
+    st.caption(f"Precio oficial {PRECIO_APUESTA} €/apuesta · Mínimo {COSTE_MINIMO:.2f} €")
 
-    # ── CONFIG PARTIDOS ──
     st.subheader("1️⃣ Configura los partidos")
     opciones = ["1", "X", "2", "1X", "X2", "12", "1X2"]
     cols = st.columns(2)
@@ -366,7 +394,6 @@ elif seccion == "⚽ Quiniela":
 
     st.divider()
 
-    # ── COSTE DIRECTO ──
     st.subheader("2️⃣ Coste directo")
     directas = generar_combinaciones(st.session_state.signos)
     c1, c2 = st.columns(2)
@@ -380,7 +407,6 @@ elif seccion == "⚽ Quiniela":
 
     st.divider()
 
-    # ── BARITA MÁGICA ──
     if st.session_state.combinaciones:
         st.subheader("3️⃣ Barita Mágica 🪄")
 
@@ -406,8 +432,8 @@ elif seccion == "⚽ Quiniela":
 
         if coste_actual < COSTE_MINIMO:
             st.warning(
-                f"⚠️ El coste final ({coste_actual:.2f} €) está por debajo del mínimo oficial "
-                f"({COSTE_MINIMO:.2f} €). Añade más apuestas para validar el boleto."
+                f"⚠️ Coste final ({coste_actual:.2f} €) por debajo del mínimo oficial "
+                f"({COSTE_MINIMO:.2f} €). Añade más apuestas."
             )
 
         st.caption("Pulsa las baritas para bajar el coste. Cada una aplica un filtro distinto.")
@@ -433,9 +459,8 @@ elif seccion == "⚽ Quiniela":
 
         st.divider()
 
-        # ── DESCARGA ──
         st.subheader("4️⃣ Descargar .txt")
-        st.caption("Formato listo para pegar en EduardoLosilla o webs similares.")
+        st.caption("Formato listo para pegar en EduardoLosilla.")
         st.download_button(
             "📥 Descargar .txt",
             data=a_txt(actuales).encode("utf-8"),
@@ -451,54 +476,75 @@ elif seccion == "⚽ Quiniela":
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 📅 JORNADA ACTUAL (datos en vivo)
+# 🧠 PROBABILIDADES 1X2
 # ═════════════════════════════════════════════════
-elif seccion == "📅 Jornada actual":
-    st.title("📅 Jornada actual")
-    st.caption("Datos oficiales de SELAE en vivo.")
+elif seccion == "🧠 Probabilidades 1X2":
+    st.title("🧠 Probabilidades 1X2")
+    st.caption("Modelo Poisson — sin API externa, sin LLM, todo en local.")
 
-    with st.spinner("Consultando la última jornada..."):
-        datos = obtener_ultima_jornada()
+    st.markdown("### 1️⃣ Configura los emparejamientos")
+    st.caption("Elige local y visitante para cada uno de los 14 partidos.")
 
-    if datos and "error" not in datos:
-        c1, c2 = st.columns(2)
-        c1.metric("Jornada nº", datos.get("jornada", "—"))
-        c2.metric("Fecha",      datos.get("fecha", "—"))
+    equipos_disponibles = sorted(st.session_state.equipos.keys())
 
-        st.divider()
-        st.subheader("🎯 Combinación ganadora")
-        combinacion = datos.get("combinacion", "—")
-        if combinacion and combinacion != "—":
-            st.markdown(
-                f"""
-                <div class="card" style="text-align:center;">
-                    <div style="font-family:monospace;font-size:28px;font-weight:800;color:#FFD700;letter-spacing:6px;">
-                        {combinacion}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+    for i in range(14):
+        local_actual, visit_actual = st.session_state.partidos_equipos[i]
+        cols = st.columns([1, 3, 3])
+
+        cols[0].markdown(f"**#{i+1}**")
+        local = cols[1].selectbox(
+            "Local", equipos_disponibles,
+            index=equipos_disponibles.index(local_actual) if local_actual in equipos_disponibles else 0,
+            key=f"loc{i}",
+        )
+        visit = cols[2].selectbox(
+            "Visitante", equipos_disponibles,
+            index=equipos_disponibles.index(visit_actual) if visit_actual in equipos_disponibles else 1,
+            key=f"vis{i}",
+        )
+
+        st.session_state.partidos_equipos[i] = (local, visit)
+
+    st.divider()
+
+    if st.button("📊 Calcular probabilidades", type="primary", use_container_width=True):
+        st.subheader("📈 Resultados")
+        for i, (local, visit) in enumerate(st.session_state.partidos_equipos):
+            lam_l, lam_v = estimar_lambdas(local, visit, st.session_state.equipos)
+            probs = predecir_partido(lam_l, lam_v)
+            favorito = signo_mas_probable(probs)
+
+            st.markdown(f"**Partido {i+1}: {local} vs {visit}**")
+            c1, c2, c3, c4 = st.columns(4)
+            c1.metric("1 (Local)",     f"{probs['1']}%")
+            c2.metric("X (Empate)",    f"{probs['X']}%")
+            c3.metric("2 (Visitante)", f"{probs['2']}%")
+            c4.metric("Favorito",      favorito)
+
+            st.caption(f"λ local = {lam_l} · λ visitante = {lam_v}")
+            st.divider()
+
+    st.divider()
+
+    st.subheader("🔧 Editar fuerzas de equipos")
+    st.caption("Modifica los valores de ataque y defensa para afinar el modelo.")
+    with st.expander("Editar equipos"):
+        for nombre in sorted(st.session_state.equipos.keys()):
+            eq = st.session_state.equipos[nombre]
+            cols = st.columns([3, 2, 2])
+            cols[0].markdown(f"**{nombre}**")
+            eq["ataque"] = cols[1].number_input(
+                f"Ataque ({nombre})", 0.0, 5.0, eq["ataque"], 0.05,
+                key=f"at_{nombre}", label_visibility="collapsed",
             )
-        else:
-            st.info("Combinación no disponible aún. La jornada sigue abierta o pendiente de sorteo.")
-
-        st.divider()
-        st.subheader("💰 Recaudación")
-        st.metric("Recaudación oficial", datos.get("recaudacion", "—"))
-
-        if st.button("🔄 Refrescar datos", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
-
-    elif datos and "error" in datos:
-        st.error(f"⚠️ No se han podido obtener datos oficiales en este momento.\n\n`{datos['error']}`")
-        st.info("Puedes consultar la jornada manualmente en la web oficial de SELAE.")
-    else:
-        st.warning("No hay datos disponibles.")
+            eq["defensa"] = cols[2].number_input(
+                f"Defensa ({nombre})", 0.0, 5.0, eq["defensa"], 0.05,
+                key=f"df_{nombre}", label_visibility="collapsed",
+            )
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 🎲 BONOLOTO
+# 🎲 BONOLOTO
 # ═════════════════════════════════════════════════
 elif seccion == "🎲 Bonoloto":
     st.title("🎲 Bonoloto")
@@ -506,7 +552,7 @@ elif seccion == "🎲 Bonoloto":
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 🍀 PRIMITIVA
+# 🍀 PRIMITIVA
 # ═════════════════════════════════════════════════
 elif seccion == "🍀 Primitiva":
     st.title("🍀 Primitiva")
@@ -514,7 +560,7 @@ elif seccion == "🍀 Primitiva":
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 🌍 EUROMILLONES
+# 🌍 EUROMILLONES
 # ═════════════════════════════════════════════════
 elif seccion == "🌍 Euromillones":
     st.title("🌍 Euromillones")
@@ -522,36 +568,41 @@ elif seccion == "🌍 Euromillones":
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: 🤖 IA MAGIC
+# 🤖 IA MAGIC
 # ═════════════════════════════════════════════════
 elif seccion == "🤖 IA Magic":
     st.title("🤖 IA Magic — La Barita Mágica")
-    st.caption("Cómo funciona nuestro sistema de reducción inteligente.")
+    st.caption("Cómo funciona el sistema de reducción y probabilidades.")
 
-    st.markdown("### ¿Qué hace la Barita Mágica?")
+    st.markdown("### 🧠 Modelo de probabilidades (Poisson)")
     st.write("""
-La Barita Mágica aplica **capas de filtros probabilísticos** sobre tus combinaciones
-para reducir el coste final sin comprometer la cobertura.
+Tu web calcula las probabilidades 1X2 con un modelo estadístico de **distribución de Poisson**:
+
+1. Cada equipo tiene un **poder de ataque** y una **fuerza defensiva**.
+2. Se calculan los **goles esperados (λ)** de cada equipo según sus fuerzas y el factor de campo.
+3. Con Poisson se calcula la probabilidad de cada marcador posible (0-0, 1-0, 2-1…).
+4. Se agrupan los marcadores en **victoria local (1)**, **empate (X)** y **victoria visitante (2)**.
 """)
 
+    st.markdown("### 🪄 Barita Mágica (reducción de coste)")
     for capa in CAPAS_BARITA:
         st.markdown(
             f"""
             <div class="card">
                 <b>{capa['nombre']}</b><br>
                 <span style="color:#a0a0b8;">
-                Filtro aplicado en cascada · reduce aprox. al {int(capa['factor']*100)}%
+                Reduce aproximadamente al {int(capa['factor']*100)}% de las combinaciones.
                 </span>
             </div>
             """,
             unsafe_allow_html=True,
         )
 
-    st.success("👉 Ve a **⚽ Quiniela** y pruébala.")
+    st.success("👉 Ve a **⚽ Quiniela** o **🧠 Probabilidades 1X2** para probarlo.")
 
 
 # ═════════════════════════════════════════════════
-# SECCIÓN: ⚙️ CUENTA
+# ⚙️ CUENTA
 # ═════════════════════════════════════════════════
 elif seccion == "⚙️ Cuenta":
     st.title("⚙️ Cuenta")
@@ -559,8 +610,9 @@ elif seccion == "⚙️ Cuenta":
     - **Plan:** Free (demo)
     - **Usuario:** privado
     - **Baritas disponibles:** 4
-    - **Precio apuesta:** {PRECIO_APUESTA} € (oficial)
+    - **Precio apuesta:** {PRECIO_APUESTA} € (oficial SELAE)
     - **Mínimo boleto:** {COSTE_MINIMO:.2f} €
+    - **Modelo de probabilidades:** Poisson (local)
     """)
     if st.button("🚪 Cerrar sesión", use_container_width=True):
         st.session_state.autenticado = False
