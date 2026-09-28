@@ -1,7 +1,11 @@
 import streamlit as st
 import pandas as pd
-import requests
 import plotly.express as px
+import random
+
+# --------------------------------------------------
+# CONFIG
+# --------------------------------------------------
 
 st.set_page_config(
     page_title="Quiniloto Magic",
@@ -9,20 +13,30 @@ st.set_page_config(
     layout="wide"
 )
 
-# ==========================
-# CONFIG
-# ==========================
+PRECIO_APUESTA = 0.75
 
-FOOTBALL_API_KEY = st.secrets.get("FOOTBALL_API_KEY", "")
-LOTERIA_API_KEY = st.secrets.get("LOTERIA_API_KEY", "")
+# --------------------------------------------------
+# FUNCIONES
+# --------------------------------------------------
 
-# ==========================
+def calcular_coste(dobles, triples):
+    apuestas = (2 ** dobles) * (3 ** triples)
+    coste = apuestas * PRECIO_APUESTA
+    return apuestas, coste
+
+
+def generar_quiniela():
+    signos = ["1", "X", "2"]
+    return [random.choice(signos) for _ in range(14)]
+
+
+# --------------------------------------------------
 # SIDEBAR
-# ==========================
+# --------------------------------------------------
 
 st.sidebar.title("🎯 Quiniloto Magic")
 
-opcion = st.sidebar.radio(
+menu = st.sidebar.radio(
     "Menú",
     [
         "🏠 Dashboard",
@@ -35,73 +49,80 @@ opcion = st.sidebar.radio(
     ]
 )
 
-# ==========================
+# --------------------------------------------------
 # DASHBOARD
-# ==========================
+# --------------------------------------------------
 
-if opcion == "🏠 Dashboard":
+if menu == "🏠 Dashboard":
 
     st.title("🎯 Quiniloto Magic")
 
     c1, c2, c3 = st.columns(3)
 
-    c1.metric("💰 Euromillones", "Cargando...")
-    c2.metric("💰 Primitiva", "Cargando...")
-    c3.metric("💰 Bonoloto", "Cargando...")
+    c1.metric("Bonoloto", "1.200.000 €")
+    c2.metric("Primitiva", "12.500.000 €")
+    c3.metric("Euromillones", "75.000.000 €")
 
-    st.divider()
+    st.markdown("---")
 
-    st.subheader("Resumen")
+    st.subheader("Plataforma")
 
-    st.info("""
-    Plataforma inteligente para:
-    
+    st.success("""
     ✅ Quiniela
+
     ✅ Bonoloto
+
     ✅ Primitiva
+
     ✅ Euromillones
+
     ✅ Estadísticas
-    ✅ Predicciones IA
+
+    ✅ Exportación TXT
     """)
 
-# ==========================
+# --------------------------------------------------
 # QUINIELA
-# ==========================
+# --------------------------------------------------
 
-elif opcion == "⚽ Quiniela":
+elif menu == "⚽ Quiniela":
 
     st.title("⚽ Quiniela")
 
-    partidos_demo = pd.DataFrame(
-        {
-            "Partido":[
-                "Real Madrid - Sevilla",
-                "Barcelona - Valencia",
-                "Betis - Villarreal",
-                "Athletic - Getafe"
-            ],
-            "1":[65,72,45,58],
-            "X":[20,15,30,24],
-            "2":[15,13,25,18]
-        }
-    )
+    partidos = pd.DataFrame({
+        "Partido": [
+            "Real Madrid - Sevilla",
+            "Barcelona - Valencia",
+            "Betis - Villarreal",
+            "Athletic - Getafe",
+            "Atlético - Osasuna"
+        ],
+        "1": [65, 72, 44, 58, 67],
+        "X": [20, 15, 31, 24, 17],
+        "2": [15, 13, 25, 18, 16]
+    })
 
-    st.dataframe(partidos_demo,use_container_width=True)
+    st.dataframe(partidos, use_container_width=True)
 
     st.subheader("Probabilidades")
 
     partido = st.selectbox(
-        "Seleccione partido",
-        partidos_demo["Partido"]
+        "Seleccione un partido",
+        partidos["Partido"]
     )
 
-    fila = partidos_demo[
-        partidos_demo["Partido"] == partido
+    fila = partidos[
+        partidos["Partido"] == partido
     ].iloc[0]
 
     fig = px.bar(
-        x=["1","X","2"],
-        y=[fila["1"],fila["X"],fila["2"]],
+        x=["1", "X", "2"],
+        y=[
+            fila["1"],
+            fila["X"],
+            fila["2"]
+        ],
+        labels={"x": "Signo", "y": "Probabilidad %"},
         title=partido
     )
 
@@ -110,7 +131,11 @@ elif opcion == "⚽ Quiniela":
         use_container_width=True
     )
 
-    valor = max(fila["1"],fila["X"],fila["2"])
+    valor = max(
+        fila["1"],
+        fila["X"],
+        fila["2"]
+    )
 
     if valor == fila["1"\]:
         recomendacion = "1"
@@ -120,91 +145,155 @@ elif opcion == "⚽ Quiniela":
         recomendacion = "2"
 
     st.success(
-        f"✅ Recomendación: {recomendacion}"
+        f"Recomendación: {recomendacion}"
     )
 
-# ==========================
-# BONOLOTO
-# ==========================
+    st.markdown("---")
 
-elif opcion == "🎲 Bonoloto":
+    st.subheader("Calculadora de Coste")
+
+    dobles = st.number_input(
+        "Dobles",
+        0,
+        14,
+        0
+    )
+
+    triples = st.number_input(
+        "Triples",
+        0,
+        14,
+        0
+    )
+
+    apuestas, coste = calcular_coste(
+        dobles,
+        triples
+    )
+
+    c1, c2 = st.columns(2)
+
+    c1.metric(
+        "Nº Apuestas",
+        apuestas
+    )
+
+    c2.metric(
+        "Coste",
+        f"{coste:.2f} €"
+    )
+
+    st.markdown("---")
+
+    st.subheader("Sistemas Reducidos")
+
+    reducciones = [
+        ("7 Dobles Reducidos", 8),
+        ("8 Dobles Reducidos", 16),
+        ("9 Dobles Reducidos", 32),
+        ("10 Dobles Reducidos", 64),
+        ("11 Dobles Reducidos", 128)
+    ]
+
+    for nombre, columnas in reducciones:
+
+        coste_red = columnas * PRECIO_APUESTA
+
+        st.info(
+            f"{nombre} | "
+            f"{columnas} columnas | "
+            f"{coste_red:.2f} €"
+        )
+
+# --------------------------------------------------
+# BONOLOTO
+# --------------------------------------------------
+
+elif menu == "🎲 Bonoloto":
 
     st.title("🎲 Bonoloto")
 
-    st.subheader("Último sorteo")
+    st.subheader("Último Sorteo")
 
-    st.info("15 - 23 - 25 - 33 - 34 - 43")
-
-    calientes = pd.DataFrame(
-        {
-            "Número":[34,23,15,18,42],
-            "Frecuencia":[420,412,408,405,401]
-        }
+    st.success(
+        "15 - 23 - 25 - 33 - 34 - 43"
     )
 
+    datos = pd.DataFrame({
+        "Número": [34, 23, 15, 42, 18],
+        "Frecuencia": [420, 412, 408, 405, 401]
+    })
+
     st.dataframe(
-        calientes,
+        datos,
         use_container_width=True
     )
 
-# ==========================
+# --------------------------------------------------
 # PRIMITIVA
-# ==========================
+# --------------------------------------------------
 
-elif opcion == "🍀 Primitiva":
+elif menu == "🍀 Primitiva":
 
     st.title("🍀 Primitiva")
 
-    st.info(
-        "Último resultado disponible"
+    st.success(
+        "03 - 09 - 10 - 30 - 36 - 45"
     )
 
-    numeros = [3,9,10,30,36,45]
+    st.write(
+        "Complementario: 26"
+    )
 
-    st.write(numeros)
+    st.write(
+        "Reintegro: 4"
+    )
 
-# ==========================
+# --------------------------------------------------
 # EUROMILLONES
-# ==========================
+# --------------------------------------------------
 
-elif opcion == "🌍 Euromillones":
+elif menu == "🌍 Euromillones":
 
     st.title("🌍 Euromillones")
 
-    st.info(
+    st.success(
         "11 - 12 - 15 - 38 - 49"
     )
 
     st.write(
-        "⭐ Estrellas: 10 y 12"
+        "Estrellas: 10 y 12"
     )
 
-# ==========================
+# --------------------------------------------------
 # ESTADISTICAS
-# ==========================
+# --------------------------------------------------
 
-elif opcion == "📈 Estadísticas":
+elif menu == "📈 Estadísticas":
 
     st.title("📈 Estadísticas")
 
-    datos = pd.DataFrame(
-        {
-            "Número":[
-                1,2,3,4,5,
-                6,7,8,9,10
-            ],
-            "Frecuencia":[
-                45,51,39,62,70,
-                40,58,44,37,72
-            ]
-        }
-    )
+    df = pd.DataFrame({
+        "Número": list(range(1, 11)),
+        "Frecuencia": [
+            44,
+            52,
+            60,
+            48,
+            72,
+            39,
+            55,
+            46,
+            35,
+            67
+        ]
+    })
 
     fig = px.bar(
-        datos,
+        df,
         x="Número",
         y="Frecuencia",
-        title="Frecuencia de aparición"
+        title="Frecuencia números"
     )
 
     st.plotly_chart(
@@ -212,11 +301,11 @@ elif opcion == "📈 Estadísticas":
         use_container_width=True
     )
 
-# ==========================
-# IA
-# ==========================
+# --------------------------------------------------
+# BARITA MAGICA
+# --------------------------------------------------
 
-elif opcion == "🤖 Barita Mágica":
+elif menu == "🤖 Barita Mágica":
 
     st.title("🤖 Barita Mágica")
 
@@ -224,25 +313,37 @@ elif opcion == "🤖 Barita Mágica":
         "🪄 Generar Quiniela"
     ):
 
-        resultado = [
-            "1","1","X","2",
-            "1","1","2","X",
-            "1","2","1","1",
-            "X","2"
-        ]
+        resultado = generar_quiniela()
 
-        for i,r in enumerate(
-            resultado,
-            start=1
-        ):
+        st.subheader("Resultado")
+
+        texto = "\n".join(resultado)
+
+        for n, signo in enumerate(resultado, start=1):
             st.write(
-                f"Partido {i}: {r}"
+                f"Partido {n}: {signo}"
             )
+
+        st.download_button(
+            label="📥 Descargar TXT",
+            data=texto,
+            file_name="quiniela.txt",
+            mime="text/plain"
+        )
 
     if st.button(
         "🎲 Generar Bonoloto"
     ):
 
+        numeros = random.sample(
+            range(1, 50),
+            6
+        )
+
+        numeros.sort()
+
         st.success(
-            "4 - 11 - 18 - 27 - 34 - 46"
+            " - ".join(
+                map(str, numeros)
+            )
         )
