@@ -551,19 +551,18 @@ st.table({
 "€/apuesta": [PRECIO_QUINIELA, PRECIO_BONOLOTO, PRECIO_PRIMITIVA, PRECIO_EUROMILLONES],
 "Mín. apuestas": [MIN_QUINIELA, MIN_BONOLOTO, MIN_PRIMITIVA, MIN_EUROMILLONES],
 })
-
 # ═══════════════════════════════════════════════
-# ⚙️ CUENTA
+# CUENTA
 # ═══════════════════════════════════════════════
 elif seccion == "⚙️ Cuenta":
     st.title("Cuenta")
     st.write("**Plan:** Free (demo)")
-    st.write("Precios oficiales:")
+    st.write("**Precios oficiales:**")
     st.write(f"Quiniela: {PRECIO_QUINIELA} EUR")
     st.write(f"Bonoloto: {PRECIO_BONOLOTO} EUR")
     st.write(f"Primitiva: {PRECIO_PRIMITIVA} EUR")
     st.write(f"Euromillones: {PRECIO_EUROMILLONES} EUR")
-    st.write("Minimos (apuestas):")
+    st.write("**Minimos (apuestas):**")
     st.write(f"Quiniela: {MIN_QUINIELA}")
     st.write(f"Bonoloto: {MIN_BONOLOTO}")
     st.write(f"Primitiva: {MIN_PRIMITIVA}")
