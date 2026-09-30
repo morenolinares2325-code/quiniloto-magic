@@ -464,7 +464,20 @@ if "barita_factores" not in st.session_state:
         "primitiva":   [0.75, 0.70, 0.60, 0.55],
         "euromillones":[0.75, 0.70, 0.60, 0.55],
     }
+# Auto-cargar jornada actual si no hay partidos reales
+if "partidos_cargados" not in st.session_state:
+    st.session_state.partidos_cargados = False
 
+if not st.session_state.partidos_cargados:
+    try:
+        datos = obtener_jornada("latest")
+        if datos and "error" not in datos:
+            partidos, _, _ = extraer_partidos(datos)
+            if partidos and len(partidos) >= 14:
+                st.session_state.partidos_jornada = partidos[:14]
+                st.session_state.partidos_cargados = True
+    except Exception:
+        pass
 
 # ═══════════════════════════════════════════════
 # SIDEBAR
