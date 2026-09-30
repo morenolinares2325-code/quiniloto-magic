@@ -66,20 +66,21 @@ if st.session_state.combinaciones:
 st.subheader("4️⃣ Barita Mágica 🪄")
 reducidas = aplicar_reduccion_oficial(st.session_state.combinaciones, tipo_red, st.session_state.signos)
 factores = st.session_state.barita_factores["quiniela"]
-actuales = aplicar_baritas(reducidas, st.session_state.baritas, factores, min_apuestas=MIN_QUINIELA)
+actuales = aplicar_baritas(reducidas, st.session_state.baritas, factores, min_ap=MIN_QUINIELA)
 
 n_sin_pleno = len(actuales)
 n_total = n_sin_pleno * pleno_mult
 coste_act, aviso = coste_real(n_total, PRECIO_QUINIELA, MIN_QUINIELA)
 
-st.markdown(f"""
-    <div class="card" style="text-align:center;">
-        <div style="color:#a0a0b8;font-size:14px;">APUESTAS TOTALES</div>
-        <div class="precio-grande">{n_total:,}</div>
-        <div style="color:#a0a0b8;font-size:14px;margin-top:8px;">COSTE FINAL</div>
-        <div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>
-    </div>
-""", unsafe_allow_html=True)
+st.markdown(
+    f'<div class="card" style="text-align:center;">'
+    f'<div style="color:#a0a0b8;font-size:14px;">APUESTAS TOTALES</div>'
+    f'<div class="precio-grande">{n_total:,}</div>'
+    f'<div style="color:#a0a0b8;font-size:14px;margin-top:8px;">COSTE FINAL</div>'
+    f'<div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>'
+    f'</div>',
+    unsafe_allow_html=True,
+)
 
 if aviso:
     st.warning(f"⚠️ Mínimo oficial: {MIN_QUINIELA} apuestas ({MIN_QUINIELA*PRECIO_QUINIELA:.2f} €).")
@@ -245,13 +246,14 @@ if st.session_state.bono_combs:
     n_act = len(actuales)
     coste_act, aviso = coste_real(n_act, PRECIO_BONOLOTO, MIN_BONOLOTO)
 
-    st.markdown(f"""
-        <div class="card" style="text-align:center;">
-            <div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>
-            <div class="precio-grande">{n_act:,}</div>
-            <div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card" style="text-align:center;">'
+        f'<div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>'
+        f'<div class="precio-grande">{n_act:,}</div>'
+        f'<div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     if aviso:
         st.warning(f"⚠️ Mínimo: {MIN_BONOLOTO} apuestas ({MIN_BONOLOTO*PRECIO_BONOLOTO:.2f} €).")
@@ -340,13 +342,14 @@ if st.session_state.pri_combs:
     n_act = len(actuales)
     coste_act = round(n_act * PRECIO_PRIMITIVA, 2)
 
-    st.markdown(f"""
-        <div class="card" style="text-align:center;">
-            <div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>
-            <div class="precio-grande">{n_act:,}</div>
-            <div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card" style="text-align:center;">'
+        f'<div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>'
+        f'<div class="precio-grande">{n_act:,}</div>'
+        f'<div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     cols_b = st.columns(4)
     for idx, capa in enumerate(BARITA_DEFAULT):
@@ -447,13 +450,14 @@ if st.session_state.eu_combs:
     n_act = len(actuales)
     coste_act = round(n_act * PRECIO_EUROMILLONES, 2)
 
-    st.markdown(f"""
-        <div class="card" style="text-align:center;">
-            <div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>
-            <div class="precio-grande">{n_act:,}</div>
-            <div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>
-        </div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="card" style="text-align:center;">'
+        f'<div style="color:#a0a0b8;font-size:14px;">APUESTAS</div>'
+        f'<div class="precio-grande">{n_act:,}</div>'
+        f'<div style="color:#FFD700;font-size:32px;font-weight:800;">{coste_act:,.2f} €</div>'
+        f'</div>',
+        unsafe_allow_html=True,
+    )
 
     cols_b = st.columns(4)
     for idx, capa in enumerate(BARITA_DEFAULT):
