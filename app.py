@@ -557,13 +557,13 @@ st.table({
 # ⚙️ CUENTA
 # ═══════════════════════════════════════════════
 elif seccion == "⚙️ Cuenta":
-st.title("⚙️ Cuenta")
-st.markdown(f"""
-- **Plan:** Free (demo)
-- **Precios:** ⚽ {PRECIO_QUINIELA} € · 🎲 {PRECIO_BONOLOTO} € · 🍀 {PRECIO_PRIMITIVA} € · 🌍 {PRECIO_EUROMILLONES} €
-- **Mínimos (apuestas):** ⚽ {MIN_QUINIELA} · 🎲 {MIN_BONOLOTO} · 🍀 {MIN_PRIMITIVA} · 🌍 {MIN_EUROMILLONES}
-- **Barita configurable:** sí
-""")
-if st.button("🚪 Cerrar sesión", use_container_width=True):
-st.session_state.autenticado = False
-st.rerun()
+    st.title("⚙️ Cuenta")
+    st.markdown(f"""
+    - **Plan:** Free (demo)
+    - **Precios:** ⚽ {PRECIO_QUINIELA} € · 🎲 {PRECIO_BONOLOTO} € · 🍀 {PRECIO_PRIMITIVA} € · 🌍 {PRECIO_EUROMILLONES} €
+    - **Mínimos (apuestas):** ⚽ {MIN_QUINIELA} · 🎲 {MIN_BONOLOTO} · 🍀 {MIN_PRIMITIVA} · 🌍 {MIN_EUROMILLONES}
+    - **Barita configurable:** sí
+    """)
+    if st.button("🚪 Cerrar sesión", use_container_width=True):
+        st.session_state.autenticado = False
+        st.rerun()
