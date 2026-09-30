@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v6
-# Version blindada: sin f-strings multilinea
+# QUINILOTO MAGIC - v7
+# Quiniela con botones 1X2 + Pleno arreglado
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -70,7 +70,7 @@ EQUIPOS_DEFAULT = {
     "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
 }
 
-# CSS (sin variables dentro, así que puede ir con comillas triples)
+# CSS
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -84,13 +84,6 @@ section[data-testid="stSidebar"] {
 .stButton > button {
     border-radius: 12px;
     font-weight: 600;
-}
-.card {
-    background: linear-gradient(145deg, #16172b 0%, #1e1f36 100%);
-    border: 1px solid rgba(255, 215, 0, 0.2);
-    border-radius: 16px;
-    padding: 24px;
-    margin-bottom: 16px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -173,6 +166,9 @@ def a_txt_quiniela(combinaciones, pleno_local, pleno_visit):
         lineas.append(str(pleno_local) + str(pleno_visit))
     return "\n".join(lineas)
 
+def ordenar_signos(s):
+    return "".join(sorted(set(s), key=lambda x: ["1", "X", "2"].index(x)))
+
 
 # ═══════════════════════════════════════════════
 # LOGICA POISSON
@@ -191,18 +187,22 @@ def predecir_1x2(lam_l, lam_v, max_g=10):
     return {"1": round(p1*100, 1), "X": round(pX*100, 1), "2": round(p2*100, 1)}
 
 def predecir_pleno(lam_l, lam_v, max_g=10):
-    p_local = {0: 0, 1: 0, 2: 0, "M": 0}
-    p_visit = {0: 0, 1: 0, 2: 0, "M": 0}
+    p_local = {"0": 0.0, "1": 0.0, "2": 0.0, "M": 0.0}
+    p_visit = {"0": 0.0, "1": 0.0, "2": 0.0, "M": 0.0}
     for g in range(max_g + 1):
         p = poisson(g, lam_l)
-        if g >= 3: p_local["M"] += p
-        else: p_local[g] += p
+        if g >= 3:
+            p_local["M"] += p
+        else:
+            p_local[str(g)] += p
         p = poisson(g, lam_v)
-        if g >= 3: p_visit["M"] += p
-        else: p_visit[g] += p
+        if g >= 3:
+            p_visit["M"] += p
+        else:
+            p_visit[str(g)] += p
     return {
-        "local": {k: round(v*100, 1) for k, v in p_local.items()},
-        "visitante": {k: round(v*100, 1) for k, v in p_visit.items()},
+        "local": {k: round(v * 100, 1) for k, v in p_local.items()},
+        "visitante": {k: round(v * 100, 1) for k, v in p_visit.items()},
     }
 
 def estimar_lambdas(local, visitante, equipos):
@@ -371,14 +371,6 @@ if seccion == "Inicio":
     t3.metric("Primitiva", str(PRECIO_PRIMITIVA) + " EUR", "min " + str(MIN_PRIMITIVA) + " ap.")
     t4.metric("Euromillones", str(PRECIO_EUROMILLONES) + " EUR", "min " + str(MIN_EUROMILLONES) + " ap.")
 
-    st.divider()
-    st.subheader("Que puedes hacer aqui")
-    st.write("- Jornada actual cargada automaticamente desde SELAE")
-    st.write("- Quiniela con 14 partidos + Pleno al 15 y reducciones oficiales")
-    st.write("- Probabilidades 1X2 y Pleno con modelo Poisson")
-    st.write("- Bonoloto / Primitiva / Euromillones con reducciones")
-    st.write("- Barita Magica con porcentajes configurables")
-
 
 # ═══════════════════════════════════════════════
 # JORNADA ACTUAL
@@ -402,7 +394,6 @@ elif seccion == "Jornada actual":
 
         st.divider()
         st.subheader("Partidos y resultados")
-
         for m in matches:
             pos = m.get("position", "?")
             home = m.get("home", "-")
@@ -417,13 +408,6 @@ elif seccion == "Jornada actual":
             pa = pleno.get("away_goals", "-")
             st.write("Resultado: " + str(ph) + " - " + str(pa))
 
-        prizes = datos.get("prizes", [])
-        if prizes:
-            st.divider()
-            st.subheader("Reparto de premios")
-            for p in prizes:
-                st.write(str(p.get("category", "-")) + ": " + str(p.get("winners", 0)) + " acertantes, " + str(p.get("prize", 0)) + " EUR")
-
         st.divider()
         if st.button("Refrescar datos", use_container_width=True):
             st.cache_data.clear()
@@ -431,31 +415,46 @@ elif seccion == "Jornada actual":
 
     elif datos and "error" in datos:
         st.error("No se han podido obtener datos oficiales: " + str(datos["error"]))
-        st.info("Registrate gratis en loteriasapi.com, copia tu API key y anadela en Streamlit Cloud - Settings - Secrets como API_KEY_LOTERIAS")
+        st.info("Registrate gratis en loteriasapi.com y anade API_KEY_LOTERIAS en Secrets.")
     else:
         st.warning("No hay datos disponibles.")
 
 
 # ═══════════════════════════════════════════════
-# QUINIELA
+# QUINIELA (con botones 1-X-2)
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
     st.title("Quiniela + Pleno al 15")
     st.write("Precio: " + str(PRECIO_QUINIELA) + " EUR/apuesta - Minimo " + str(MIN_QUINIELA) + " apuestas")
 
     st.subheader("1. Configura los 14 partidos")
-    opciones = ["1", "X", "2", "1X", "X2", "12", "1X2"]
-    cols = st.columns(2)
+    st.write("Pulsa los botones 1-X-2 para marcar cada partido. Activa varios por partido para doble o triple.")
+
     for i in range(14):
-        with cols[i % 2]:
-            st.session_state.signos[i] = st.selectbox(
-                "Partido " + str(i+1), opciones,
-                index=opciones.index(st.session_state.signos[i]),
-                key="p" + str(i),
-            )
+        cols = st.columns([1, 2, 2, 2, 3])
+        cols[0].markdown("**P" + str(i+1) + "**")
+        for j, signo in enumerate(["1", "X", "2"]):
+            with cols[j+1]:
+                activo = signo in st.session_state.signos[i]
+                label = ("OK " + signo) if activo else signo
+                if st.button(label, key="sig_" + str(i) + "_" + signo, use_container_width=True):
+                    actual = st.session_state.signos[i]
+                    if signo in actual:
+                        nuevo = actual.replace(signo, "")
+                        if nuevo == "":
+                            nuevo = "1"
+                        st.session_state.signos[i] = nuevo
+                    else:
+                        st.session_state.signos[i] = ordenar_signos(actual + signo)
+                    st.rerun()
+        cols[4].markdown("Marcados: **" + st.session_state.signos[i] + "**")
 
     dobles, triples = contar_dobles_triples(st.session_state.signos)
     st.info("Dobles: " + str(dobles) + " - Triples: " + str(triples))
+
+    if st.button("Resetear todos a 1", use_container_width=True):
+        st.session_state.signos = ["1"] * 14
+        st.rerun()
 
     st.divider()
     st.subheader("2. Reduccion oficial")
