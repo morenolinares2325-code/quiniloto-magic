@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v7
-# Quiniela con botones 1X2 + Pleno arreglado
+# QUINILOTO MAGIC - v8
+# Botones iluminados + Sidebar bonito
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -84,6 +84,24 @@ section[data-testid="stSidebar"] {
 .stButton > button {
     border-radius: 12px;
     font-weight: 600;
+}
+
+/* Ocultar el header superior y el nombre "app" del sidebar */
+header[data-testid="stHeader"] { display: none; }
+[data-testid="stSidebarNav"] { display: none; }
+[data-testid="stSidebarHeader"] { display: none; }
+
+/* Botones iluminados (type=primary) */
+.stButton > button[kind="primary"] {
+    background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
+    color: #0a0b15 !important;
+    border: none !important;
+    box-shadow: 0 4px 14px rgba(255, 215, 0, 0.5) !important;
+}
+.stButton > button[kind="secondary"] {
+    background: transparent !important;
+    color: #e0e0e0 !important;
+    border: 1px solid #333 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -267,8 +285,19 @@ if "autenticado" not in st.session_state:
     st.session_state.autenticado = False
 
 if not st.session_state.autenticado:
-    st.title("Quiniloto Magic")
-    st.write("Acceso privado")
+    st.markdown(
+        "<h1 style='text-align:center;font-family:Inter,sans-serif;"
+        "font-size:52px;font-weight:800;letter-spacing:-2px;"
+        "color:#FFD700;margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
+        "<h2 style='text-align:center;font-family:Inter,sans-serif;"
+        "font-size:32px;font-weight:700;letter-spacing:14px;"
+        "color:#FFD700;margin-top:0;'>MAGIC</h2>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        "<p style='text-align:center;color:#a0a0b8;font-size:14px;'>Acceso privado</p>",
+        unsafe_allow_html=True,
+    )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         pwd = st.text_input("Contrasena", type="password", label_visibility="collapsed")
@@ -321,7 +350,15 @@ if "barita_factores" not in st.session_state:
 # SIDEBAR
 # ═══════════════════════════════════════════════
 with st.sidebar:
-    st.markdown("### Quiniloto Magic")
+    st.markdown(
+        "<h1 style='text-align:center;font-family:Inter,sans-serif;"
+        "font-size:30px;font-weight:800;letter-spacing:-1px;"
+        "color:#FFD700;margin-bottom:0;'>QUINILOTO</h1>"
+        "<h2 style='text-align:center;font-family:Inter,sans-serif;"
+        "font-size:22px;font-weight:700;letter-spacing:10px;"
+        "color:#FFD700;margin-top:0;margin-bottom:25px;'>MAGIC</h2>",
+        unsafe_allow_html=True,
+    )
     st.markdown("---")
     seccion = st.radio(
         "Seccion",
@@ -354,9 +391,16 @@ with st.sidebar:
 # INICIO
 # ═══════════════════════════════════════════════
 if seccion == "Inicio":
-    st.title("Quiniloto Magic")
-    st.write("Plataforma inteligente para quinielas y loterias")
+    st.markdown(
+        "<h1 style='text-align:center;font-family:Inter,sans-serif;"
+        "font-size:48px;font-weight:800;letter-spacing:-2px;"
+        "color:#FFD700;margin-bottom:0;'>QUINILOTO MAGIC</h1>"
+        "<p style='text-align:center;color:#a0a0b8;font-size:15px;"
+        "margin-top:4px;'>Plataforma inteligente para quinielas y loterias</p>",
+        unsafe_allow_html=True,
+    )
 
+    st.divider()
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Quiniela", "14+1")
     c2.metric("Bonoloto", "6/49")
@@ -421,23 +465,30 @@ elif seccion == "Jornada actual":
 
 
 # ═══════════════════════════════════════════════
-# QUINIELA (con botones 1-X-2)
+# QUINIELA (botones que se iluminan)
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
     st.title("Quiniela + Pleno al 15")
-    st.write("Precio: " + str(PRECIO_QUINIELA) + " EUR/apuesta - Minimo " + str(MIN_QUINIELA) + " apuestas")
+    st.caption("Precio: " + str(PRECIO_QUINIELA) + " EUR/apuesta - Minimo " + str(MIN_QUINIELA) + " apuestas")
 
     st.subheader("1. Configura los 14 partidos")
-    st.write("Pulsa los botones 1-X-2 para marcar cada partido. Activa varios por partido para doble o triple.")
+    st.caption("Pulsa 1, X o 2 para marcar. Varios por partido = doble o triple.")
 
     for i in range(14):
-        cols = st.columns([1, 2, 2, 2, 3])
-        cols[0].markdown("**P" + str(i+1) + "**")
+        cols = st.columns([1, 1, 1, 1])
+        cols[0].markdown(
+            "<div style='padding-top:8px;font-weight:600;color:#a0a0b8;'>P" + str(i+1) + "</div>",
+            unsafe_allow_html=True,
+        )
         for j, signo in enumerate(["1", "X", "2"]):
             with cols[j+1]:
                 activo = signo in st.session_state.signos[i]
-                label = ("OK " + signo) if activo else signo
-                if st.button(label, key="sig_" + str(i) + "_" + signo, use_container_width=True):
+                if st.button(
+                    signo,
+                    key="sig_" + str(i) + "_" + signo,
+                    use_container_width=True,
+                    type="primary" if activo else "secondary",
+                ):
                     actual = st.session_state.signos[i]
                     if signo in actual:
                         nuevo = actual.replace(signo, "")
@@ -447,10 +498,9 @@ elif seccion == "Quiniela":
                     else:
                         st.session_state.signos[i] = ordenar_signos(actual + signo)
                     st.rerun()
-        cols[4].markdown("Marcados: **" + st.session_state.signos[i] + "**")
 
     dobles, triples = contar_dobles_triples(st.session_state.signos)
-    st.info("Dobles: " + str(dobles) + " - Triples: " + str(triples))
+    st.caption("Dobles: " + str(dobles) + " - Triples: " + str(triples))
 
     if st.button("Resetear todos a 1", use_container_width=True):
         st.session_state.signos = ["1"] * 14
@@ -475,7 +525,7 @@ elif seccion == "Quiniela":
     st.session_state.pleno_local = pleno_loc[0] if pleno_loc else "1"
     st.session_state.pleno_visit = pleno_vis[0] if pleno_vis else "0"
     pleno_mult = max(1, len(pleno_loc)) * max(1, len(pleno_vis))
-    st.info("Multiplicador del Pleno: x" + str(pleno_mult))
+    st.caption("Multiplicador del Pleno: x" + str(pleno_mult))
 
     st.divider()
     st.subheader("3. Coste")
@@ -515,8 +565,9 @@ elif seccion == "Quiniela":
             with cols_b[idx]:
                 usada = capa["id"] in st.session_state.baritas
                 pct = int(factores[idx] * 100)
-                label = ("OK " if usada else "") + capa["nombre"] + " (" + str(pct) + "%)"
-                if st.button(label, key="b" + str(capa["id"]), use_container_width=True, disabled=usada):
+                label = capa["nombre"] + " (" + str(pct) + "%)"
+                if st.button(label, key="b" + str(capa["id"]), use_container_width=True, disabled=usada,
+                             type="primary" if usada else "secondary"):
                     st.session_state.baritas.append(capa["id"])
                     st.rerun()
 
@@ -615,7 +666,7 @@ elif seccion == "Probabilidades 1X2 + Pleno":
 # ═══════════════════════════════════════════════
 elif seccion == "Bonoloto":
     st.title("Bonoloto")
-    st.write("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta - Minimo " + str(MIN_BONOLOTO) + " apuestas")
+    st.caption("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta - Minimo " + str(MIN_BONOLOTO) + " apuestas")
 
     if "bono_nums" not in st.session_state: st.session_state.bono_nums = []
     if "bono_combs" not in st.session_state: st.session_state.bono_combs = None
@@ -626,13 +677,17 @@ elif seccion == "Bonoloto":
     for n in range(1, 50):
         with cols[(n-1) % 10]:
             activo = n in st.session_state.bono_nums
-            label = ("**" + str(n) + "**") if activo else str(n)
-            if st.button(label, key="bn" + str(n), use_container_width=True):
+            if st.button(
+                str(n),
+                key="bn" + str(n),
+                use_container_width=True,
+                type="primary" if activo else "secondary",
+            ):
                 if activo: st.session_state.bono_nums.remove(n)
                 else: st.session_state.bono_nums.append(n)
                 st.rerun()
 
-    st.info("Seleccionados: " + str(len(st.session_state.bono_nums)) + " -> " + str(sorted(st.session_state.bono_nums)))
+    st.caption("Seleccionados: " + str(len(st.session_state.bono_nums)) + " -> " + str(sorted(st.session_state.bono_nums)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
@@ -683,8 +738,9 @@ elif seccion == "Bonoloto":
                 with cols_b[idx]:
                     usada = capa["id"] in st.session_state.bono_baritas
                     pct = int(factores[idx] * 100)
-                    label = ("OK " if usada else "") + capa["nombre"] + " (" + str(pct) + "%)"
-                    if st.button(label, key="bb" + str(capa["id"]), use_container_width=True, disabled=usada):
+                    label = capa["nombre"] + " (" + str(pct) + "%)"
+                    if st.button(label, key="bb" + str(capa["id"]), use_container_width=True, disabled=usada,
+                                 type="primary" if usada else "secondary"):
                         st.session_state.bono_baritas.append(capa["id"])
                         st.rerun()
 
@@ -708,7 +764,7 @@ elif seccion == "Bonoloto":
 # ═══════════════════════════════════════════════
 elif seccion == "Primitiva":
     st.title("Primitiva")
-    st.write("Precio: " + str(PRECIO_PRIMITIVA) + " EUR/apuesta - Minimo " + str(MIN_PRIMITIVA) + " apuesta")
+    st.caption("Precio: " + str(PRECIO_PRIMITIVA) + " EUR/apuesta - Minimo " + str(MIN_PRIMITIVA) + " apuesta")
 
     if "pri_nums" not in st.session_state: st.session_state.pri_nums = []
     if "pri_combs" not in st.session_state: st.session_state.pri_combs = None
@@ -719,13 +775,17 @@ elif seccion == "Primitiva":
     for n in range(1, 50):
         with cols[(n-1) % 10]:
             activo = n in st.session_state.pri_nums
-            label = ("**" + str(n) + "**") if activo else str(n)
-            if st.button(label, key="pn" + str(n), use_container_width=True):
+            if st.button(
+                str(n),
+                key="pn" + str(n),
+                use_container_width=True,
+                type="primary" if activo else "secondary",
+            ):
                 if activo: st.session_state.pri_nums.remove(n)
                 else: st.session_state.pri_nums.append(n)
                 st.rerun()
 
-    st.info("Seleccionados: " + str(len(st.session_state.pri_nums)) + " -> " + str(sorted(st.session_state.pri_nums)))
+    st.caption("Seleccionados: " + str(len(st.session_state.pri_nums)) + " -> " + str(sorted(st.session_state.pri_nums)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
@@ -771,8 +831,9 @@ elif seccion == "Primitiva":
                 with cols_b[idx]:
                     usada = capa["id"] in st.session_state.pri_baritas
                     pct = int(factores[idx] * 100)
-                    label = ("OK " if usada else "") + capa["nombre"] + " (" + str(pct) + "%)"
-                    if st.button(label, key="pb" + str(capa["id"]), use_container_width=True, disabled=usada):
+                    label = capa["nombre"] + " (" + str(pct) + "%)"
+                    if st.button(label, key="pb" + str(capa["id"]), use_container_width=True, disabled=usada,
+                                 type="primary" if usada else "secondary"):
                         st.session_state.pri_baritas.append(capa["id"])
                         st.rerun()
 
@@ -796,7 +857,7 @@ elif seccion == "Primitiva":
 # ═══════════════════════════════════════════════
 elif seccion == "Euromillones":
     st.title("Euromillones")
-    st.write("5 numeros (1-50) + 2 estrellas (1-12) - " + str(PRECIO_EUROMILLONES) + " EUR/apuesta")
+    st.caption("5 numeros (1-50) + 2 estrellas (1-12) - " + str(PRECIO_EUROMILLONES) + " EUR/apuesta")
 
     if "eu_nums" not in st.session_state: st.session_state.eu_nums = []
     if "eu_est" not in st.session_state: st.session_state.eu_est = []
@@ -808,8 +869,12 @@ elif seccion == "Euromillones":
     for n in range(1, 51):
         with cols[(n-1) % 10]:
             activo = n in st.session_state.eu_nums
-            label = ("**" + str(n) + "**") if activo else str(n)
-            if st.button(label, key="en" + str(n), use_container_width=True):
+            if st.button(
+                str(n),
+                key="en" + str(n),
+                use_container_width=True,
+                type="primary" if activo else "secondary",
+            ):
                 if activo: st.session_state.eu_nums.remove(n)
                 else: st.session_state.eu_nums.append(n)
                 st.rerun()
@@ -819,14 +884,18 @@ elif seccion == "Euromillones":
     for n in range(1, 13):
         with cols_e[n-1]:
             activo = n in st.session_state.eu_est
-            label = ("**E" + str(n) + "**") if activo else ("E" + str(n))
-            if st.button(label, key="ee" + str(n), use_container_width=True):
+            if st.button(
+                "E" + str(n),
+                key="ee" + str(n),
+                use_container_width=True,
+                type="primary" if activo else "secondary",
+            ):
                 if activo: st.session_state.eu_est.remove(n)
                 else: st.session_state.eu_est.append(n)
                 st.rerun()
 
-    st.info("Numeros: " + str(len(st.session_state.eu_nums)) + " -> " + str(sorted(st.session_state.eu_nums)))
-    st.info("Estrellas: " + str(len(st.session_state.eu_est)) + " -> " + str(sorted(st.session_state.eu_est)))
+    st.caption("Numeros: " + str(len(st.session_state.eu_nums)) + " -> " + str(sorted(st.session_state.eu_nums)))
+    st.caption("Estrellas: " + str(len(st.session_state.eu_est)) + " -> " + str(sorted(st.session_state.eu_est)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True, key="rand_eu"):
@@ -874,8 +943,9 @@ elif seccion == "Euromillones":
                 with cols_b[idx]:
                     usada = capa["id"] in st.session_state.eu_baritas
                     pct = int(factores[idx] * 100)
-                    label = ("OK " if usada else "") + capa["nombre"] + " (" + str(pct) + "%)"
-                    if st.button(label, key="eb" + str(capa["id"]), use_container_width=True, disabled=usada):
+                    label = capa["nombre"] + " (" + str(pct) + "%)"
+                    if st.button(label, key="eb" + str(capa["id"]), use_container_width=True, disabled=usada,
+                                 type="primary" if usada else "secondary"):
                         st.session_state.eu_baritas.append(capa["id"])
                         st.rerun()
 
