@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v10
-# Quiniela estilo web referencia + reducciones + boletos neon
+# QUINILOTO MAGIC - v12
+# API LoteriaAPI + Reduccion libre 13/12/11/10 + Barita Magica
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -16,7 +16,9 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# PRECIOS OFICIALES
+# ─────────────────────────────────────────────────
+# CONFIGURACION
+# ─────────────────────────────────────────────────
 PASSWORD = "2325"
 PRECIO_QUINIELA     = 0.75
 PRECIO_BONOLOTO     = 0.50
@@ -26,7 +28,6 @@ MIN_QUINIELA        = 2
 MIN_BONOLOTO        = 2
 MIN_PRIMITIVA       = 1
 MIN_EUROMILLONES    = 1
-API_KEY_DEFAULT     = ""
 
 PLENO_OPCIONES = ["0", "1", "2", "M"]
 
@@ -60,120 +61,9 @@ EQUIPOS_DEFAULT = {
     "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
 }
 
-# ═══════════════════════════════════════════════
-# TABLAS OFICIALES DE REDUCCION SELAE
-# ═══════════════════════════════════════════════
-
-TABLA_RED_1 = [
-    ["1","1","1","1"], ["1","X","X","X"], ["1","2","2","2"],
-    ["X","1","X","2"], ["X","X","2","1"], ["X","2","1","X"],
-    ["2","1","2","X"], ["2","X","1","2"], ["2","2","X","1"],
-]
-
-TABLA_RED_2 = [
-    ["1","1","1","1","1","1","1"],
-    ["1","1","1","X","X","X","X"],
-    ["1","1","X","1","1","X","X"],
-    ["1","1","X","X","X","1","1"],
-    ["1","X","1","1","X","1","X"],
-    ["1","X","1","X","1","X","1"],
-    ["1","X","X","1","X","X","1"],
-    ["1","X","X","X","1","1","X"],
-    ["X","1","1","1","X","X","1"],
-    ["X","1","1","X","1","1","X"],
-    ["X","1","X","1","X","1","X"],
-    ["X","1","X","X","1","X","1"],
-    ["X","X","1","1","1","X","X"],
-    ["X","X","1","X","X","1","1"],
-    ["X","X","X","1","1","1","1"],
-    ["X","X","X","X","X","X","X"],
-]
-
-TABLA_RED_3 = [
-    ["1","1","1","1","1","1"], ["1","1","1","1","X","X"],
-    ["1","1","1","1","2","2"], ["1","1","X","2","1","X"],
-    ["1","1","X","2","X","2"], ["1","1","X","2","2","1"],
-    ["1","X","2","1","1","X"], ["1","X","2","1","X","2"],
-    ["1","X","2","1","2","1"], ["1","X","1","1","1","2"],
-    ["1","X","1","1","X","1"], ["1","X","1","1","2","X"],
-    ["X","1","1","2","1","1"], ["X","1","1","2","X","X"],
-    ["X","1","1","2","2","2"], ["X","1","X","1","1","2"],
-    ["X","1","X","1","X","1"], ["X","1","X","1","2","X"],
-    ["X","X","2","2","1","2"], ["X","X","2","2","X","1"],
-    ["X","X","2","2","2","X"], ["X","X","1","2","1","X"],
-    ["X","X","1","2","X","2"], ["X","X","1","2","2","1"],
-]
-
-TABLA_RED_4 = [
-    ["1","1","1","1","1","1","1","1"],
-    ["1","1","1","1","1","1","X","X"],
-    ["1","1","1","1","1","1","2","2"],
-    ["1","1","1","1","X","X","1","X"],
-    ["1","1","1","1","X","X","X","1"],
-    ["1","1","1","1","X","X","2","2"],
-    ["1","1","1","1","2","2","1","1"],
-    ["1","1","1","1","2","2","X","X"],
-    ["1","1","X","X","1","1","1","X"],
-    ["1","1","X","X","1","1","X","1"],
-    ["1","1","X","X","X","X","2","2"],
-    ["1","1","X","X","2","2","1","1"],
-    ["1","X","1","X","1","X","1","1"],
-    ["1","X","1","X","X","1","X","X"],
-    ["1","X","X","1","1","X","2","2"],
-    ["1","X","X","1","2","1","1","1"],
-]
-
-TABLA_RED_5 = [
-    ["1","1","1","1","1","1","1","1"],
-    ["1","1","1","1","1","1","1","X"],
-    ["1","1","1","1","1","1","1","2"],
-    ["1","1","1","1","1","1","X","1"],
-    ["1","1","1","1","1","1","2","1"],
-    ["1","1","1","1","1","X","1","1"],
-    ["1","1","1","1","1","2","1","1"],
-    ["1","1","1","1","X","1","1","1"],
-    ["1","1","1","1","2","1","1","1"],
-    ["1","1","1","X","1","1","1","1"],
-    ["1","1","1","2","1","1","1","1"],
-    ["1","1","X","1","1","1","1","1"],
-    ["1","1","2","1","1","1","1","1"],
-    ["1","X","1","1","1","1","1","1"],
-    ["1","2","1","1","1","1","1","1"],
-    ["X","1","1","1","1","1","1","1"],
-]
-
-TABLA_RED_6 = [
-    ["1","1","1","1","1","1","1","1","1","1","1"],
-    ["1","1","1","1","1","1","1","1","1","1","X"],
-    ["1","1","1","1","1","1","1","1","1","X","1"],
-    ["1","1","1","1","1","1","1","1","X","1","1"],
-    ["1","1","1","1","1","1","1","X","1","1","1"],
-    ["1","1","1","1","1","1","X","1","1","1","1"],
-    ["1","1","1","1","1","X","1","1","1","1","1"],
-    ["1","1","1","1","X","1","1","1","1","1","1"],
-    ["1","1","1","X","1","1","1","1","1","1","1"],
-    ["1","1","X","1","1","1","1","1","1","1","1"],
-    ["1","X","1","1","1","1","1","1","1","1","1"],
-    ["X","1","1","1","1","1","1","1","1","1","1"],
-    ["1","1","1","1","1","1","1","1","1","X","X"],
-    ["1","1","1","1","1","1","1","1","X","1","X"],
-    ["1","1","1","1","1","1","1","1","X","X","1"],
-    ["1","1","1","1","1","1","1","X","1","1","X"],
-]
-
-REDUCCIONES_QUINIELA = {
-    "directo":    {"nombre": "Directo (sin reducir)", "tabla": None, "n": 0, "tipo": None, "min": 0},
-    "reducida_1": {"nombre": "Reduccion al 13 (4 Triples -> 9 ap.)", "tabla": TABLA_RED_1, "n": 4, "tipo": "triple", "min": 4},
-    "reducida_2": {"nombre": "Reduccion al 12 (7 Dobles -> 16 ap.)", "tabla": TABLA_RED_2, "n": 7, "tipo": "doble", "min": 7},
-    "reducida_3": {"nombre": "Reduccion al 11 (3 Dobles+3 Triples -> 24 ap.)", "tabla": TABLA_RED_3, "n": 6, "tipo": "mixto", "min": 6},
-    "reducida_4": {"nombre": "Reduccion al 10 (6 Dobles+2 Triples -> 64 ap.)", "tabla": TABLA_RED_4, "n": 8, "tipo": "mixto", "min": 8},
-    "reducida_5": {"nombre": "Reduccion 5a (8 Triples -> 81 ap.)", "tabla": TABLA_RED_5, "n": 8, "tipo": "triple", "min": 8},
-    "reducida_6": {"nombre": "Reduccion 6a (11 Dobles -> 132 ap.)", "tabla": TABLA_RED_6, "n": 11, "tipo": "doble", "min": 11},
-}
-
-# ═══════════════════════════════════════════════
+# ─────────────────────────────────────────────────
 # CSS NEON
-# ═══════════════════════════════════════════════
+# ─────────────────────────────────────────────────
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -199,8 +89,6 @@ header[data-testid="stHeader"] { display: none; }
     color: #e0e0e0 !important;
     border: 1px solid #333 !important;
 }
-
-/* Cabecera tabla pronostico */
 .tabla-header {
     background: linear-gradient(180deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.05) 100%);
     border-bottom: 2px solid rgba(255, 215, 0, 0.4);
@@ -211,108 +99,106 @@ header[data-testid="stHeader"] { display: none; }
     font-size: 12px;
     text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
 }
-
-/* Numero partido */
-.num-partido {
-    color: #FFD700;
-    font-weight: 700;
-    font-size: 14px;
-    text-align: center;
-    padding-top: 6px;
-}
-
-/* Nombre partido */
-.nombre-partido {
-    color: #ffffff;
-    font-weight: 500;
-    font-size: 13px;
-    padding-top: 6px;
-}
-
-/* Resultado */
-.resultado-oficial {
-    color: #a0a0b8;
-    font-size: 12px;
-    text-align: center;
-    padding-top: 8px;
-}
-
-/* Probabilidades */
-.probs {
-    color: #6b7280;
-    font-size: 11px;
-    padding-top: 8px;
-    text-align: right;
-}
-
-/* Boletin columnas */
+.num-partido { color: #FFD700; font-weight: 700; font-size: 14px; text-align: center; padding-top: 6px; }
+.nombre-partido { color: #ffffff; font-weight: 500; font-size: 13px; padding-top: 6px; }
+.resultado-oficial { color: #a0a0b8; font-size: 12px; text-align: center; padding-top: 8px; }
 .boletin-cab {
     background: linear-gradient(180deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.15) 100%);
-    color: #FFD700;
-    text-align: center;
-    font-weight: 700;
-    font-size: 11px;
-    padding: 6px 2px;
-    border-radius: 4px;
-    text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+    color: #FFD700; text-align: center; font-weight: 700; font-size: 11px;
+    padding: 6px 2px; border-radius: 4px; text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
 }
-
 .signo-celda {
-    display: inline-block;
-    padding: 4px 8px;
-    border-radius: 4px;
-    font-weight: 800;
-    font-size: 12px;
-    width: 22px;
-    text-align: center;
+    display: inline-block; padding: 4px 8px; border-radius: 4px;
+    font-weight: 800; font-size: 12px; min-width: 22px; text-align: center;
 }
-
 .signo-1 { background: #22c55e; color: white; box-shadow: 0 0 8px rgba(34,197,94,0.6); }
 .signo-X { background: #eab308; color: white; box-shadow: 0 0 8px rgba(234,179,8,0.6); }
 .signo-2 { background: #ef4444; color: white; box-shadow: 0 0 8px rgba(239,68,68,0.6); }
-
 .titulo-seccion-dorado {
-    color: #FFD700;
-    font-weight: 800;
-    letter-spacing: 1px;
+    color: #FFD700; font-weight: 800; letter-spacing: 1px;
     text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
 }
-
 .titulo-columnas {
-    text-align: center;
-    color: #FFD700;
-    font-weight: 800;
-    font-size: 20px;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.7);
-    padding: 12px 0;
+    text-align: center; color: #FFD700; font-weight: 800; font-size: 20px;
+    text-shadow: 0 0 20px rgba(255, 215, 0, 0.7); padding: 12px 0;
 }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ═══════════════════════════════════════════════
-# API SELAE
+# API LOTERIAAPI
 # ═══════════════════════════════════════════════
 def _get_api_key():
     try:
-        return st.secrets.get("API_KEY_LOTERIAS", API_KEY_DEFAULT)
+        return st.secrets.get("API_KEY_LOTERIAS", "")
     except Exception:
-        return API_KEY_DEFAULT
+        return ""
 
-@st.cache_data(ttl=3600)
-def obtener_ultima_jornada():
+
+@st.cache_data(ttl=1800)
+def obtener_jornada(endpoint):
+    """endpoint = 'latest' o 'next'"""
     key = _get_api_key()
     if not key:
         return {"error": "API_KEY_LOTERIAS no configurada en Secrets."}
     try:
-        r = requests.get(
-            "https://api.loteriasapi.com/api/v1/results/quiniela/latest",
-            headers={"X-API-Key": key}, timeout=15
-        )
+        url = "https://api.loteriasapi.com/api/v1/results/quiniela/" + endpoint
+        r = requests.get(url, headers={"X-API-Key": key}, timeout=15)
         r.raise_for_status()
         return r.json()
     except Exception as e:
         return {"error": str(e)}
+
+
+def extraer_partidos(datos):
+    """Extrae partidos de la respuesta JSON de forma flexible."""
+    partidos = []
+    jornada_num = None
+    fecha = None
+
+    if not isinstance(datos, dict):
+        return partidos, jornada_num, fecha
+
+    # Buscar campos de jornada y fecha en cualquier nivel
+    jornada_num = (
+        datos.get("jornada") or datos.get("matchday") or datos.get("numero")
+        or datos.get("num_jornada")
+    )
+    fecha = (
+        datos.get("fecha") or datos.get("draw_date")
+        or datos.get("fecha_sorteo") or datos.get("date")
+    )
+
+    # Buscar lista de partidos en cualquier clave conocida
+    candidatos = ["resultados", "matches", "partidos", "games", "fixtures", "data"]
+    lista = None
+    for k in candidatos:
+        if k in datos and isinstance(datos[k], list):
+            lista = datos[k]
+            break
+
+    if lista is None:
+        # Si el propio dict es la jornada, buscar en sub-claves
+        for v in datos.values():
+            if isinstance(v, dict):
+                sub_partidos, sub_j, sub_f = extraer_partidos(v)
+                if sub_partidos:
+                    return sub_partidos, sub_j, sub_f
+
+    if lista:
+        for r in lista:
+            if not isinstance(r, dict):
+                continue
+            local = (r.get("local") or r.get("home") or r.get("equipo_local")
+                     or r.get("team1") or r.get("local_team") or "-")
+            visit = (r.get("visitante") or r.get("away") or r.get("equipo_visitante")
+                     or r.get("team2") or r.get("visit_team") or "-")
+            signo = (r.get("signo") or r.get("result") or r.get("sign")
+                     or r.get("resultado") or "")
+            partidos.append((local, visit, signo))
+
+    return partidos, jornada_num, fecha
 
 
 # ═══════════════════════════════════════════════
@@ -321,58 +207,83 @@ def obtener_ultima_jornada():
 def generar_combinaciones(signos):
     return list(itertools.product(*[list(s) for s in signos]))
 
+
 def contar_dobles_triples(signos):
     dobles = sum(1 for s in signos if len(s) == 2)
     triples = sum(1 for s in signos if len(s) == 3)
     return dobles, triples
 
+
 def ordenar_signos(s):
     return "".join(sorted(set(s), key=lambda x: ["1", "X", "2"].index(x)))
 
-def encontrar_indices_reduccion(signos, n, tipo):
-    indices = []
-    if tipo == "triple":
-        for i, s in enumerate(signos):
-            if len(s) == 3:
-                indices.append(i)
-    elif tipo == "doble":
-        for i, s in enumerate(signos):
-            if len(s) == 2:
-                indices.append(i)
-    elif tipo == "mixto":
-        for i, s in enumerate(signos):
-            if len(s) == 3:
-                indices.append(i)
-        for i, s in enumerate(signos):
-            if len(s) == 2 and i not in indices:
-                indices.append(i)
-    return indices
 
-def aplicar_reduccion_oficial(signos, tipo_reduccion):
-    if tipo_reduccion == "directo":
-        return ["".join(c) for c in generar_combinaciones(signos)]
-    
-    info = REDUCCIONES_QUINIELA.get(tipo_reduccion)
-    if not info or not info["tabla"]:
+def distancia_hamming(a, b):
+    return sum(1 for x, y in zip(a, b) if x != y)
+
+
+def reducir_por_cobertura(combinaciones, garantia, objetivo=None):
+    """
+    Reduccion aproximada por cobertura de Hamming.
+    garantia: 13, 12, 11 o 10.
+    objetivo: numero maximo de columnas a devolver.
+    """
+    n_total = len(combinaciones)
+    if n_total == 0:
         return []
-    
-    tabla = info["tabla"]
-    n = info["n"]
-    tipo = info.get("tipo")
-    
-    indices = encontrar_indices_reduccion(signos, n, tipo)
-    if len(indices) < n:
-        return []
-    indices = indices[:n]
-    
-    apuestas = []
-    for fila in tabla:
-        apuesta = list(signos)
-        for j, idx in enumerate(indices):
-            if j < len(fila):
-                apuesta[idx] = fila[j]
-        apuestas.append("".join(apuesta))
-    return apuestas
+
+    max_dist = 14 - garantia
+
+    # Objetivo de columnas segun garantia (basado en ratios empiricos)
+    if objetivo is None:
+        ratios = {13: 0.0625, 12: 0.0150, 11: 0.0030, 10: 0.0008}
+        objetivo = max(MIN_QUINIELA, int(n_total * ratios.get(garantia, 0.01)))
+
+    # Si el objetivo cubre todo, devolvemos todo
+    if objetivo >= n_total:
+        return ["".join(c) for c in combinaciones]
+
+    combos = [tuple(c) for c in combinaciones]
+
+    # Greedy: seleccionar combinaciones que cubran mas no-cubiertas
+    random.seed(42)
+    cubiertas = set()
+    seleccionadas = []
+    indices_disponibles = list(range(n_total))
+    random.shuffle(indices_disponibles)
+
+    for _ in range(objetivo):
+        mejor_idx = None
+        mejor_cobertura = -1
+
+        for idx in indices_disponibles:
+            if idx in cubiertas:
+                continue
+            c = combos[idx]
+            cubre = 0
+            for j, otra in enumerate(combos):
+                if j in cubiertas:
+                    continue
+                if distancia_hamming(c, otra) <= max_dist:
+                    cubre += 1
+            if cubre > mejor_cobertura:
+                mejor_cobertura = cubre
+                mejor_idx = idx
+
+        if mejor_idx is None:
+            break
+
+        seleccionadas.append(combos[mejor_idx])
+        c = combos[mejor_idx]
+        for j, otra in enumerate(combos):
+            if j not in cubiertas and distancia_hamming(c, otra) <= max_dist:
+                cubiertas.add(j)
+
+        if len(cubiertas) >= n_total:
+            break
+
+    return ["".join(c) for c in seleccionadas]
+
 
 def a_txt_quiniela(apuestas, pleno_local, pleno_visit):
     lineas = list(apuestas)
@@ -387,6 +298,7 @@ def a_txt_quiniela(apuestas, pleno_local, pleno_visit):
 def poisson(k, lam):
     return (lam ** k) * math.exp(-lam) / math.factorial(k)
 
+
 def predecir_1x2(lam_l, lam_v, max_g=10):
     p1 = pX = p2 = 0.0
     for gl in range(max_g + 1):
@@ -396,6 +308,7 @@ def predecir_1x2(lam_l, lam_v, max_g=10):
             elif gl == gv: pX += p
             else: p2 += p
     return {"1": round(p1*100, 1), "X": round(pX*100, 1), "2": round(p2*100, 1)}
+
 
 def predecir_pleno(lam_l, lam_v, max_g=10):
     p_local = {"0": 0.0, "1": 0.0, "2": 0.0, "M": 0.0}
@@ -412,6 +325,7 @@ def predecir_pleno(lam_l, lam_v, max_g=10):
         "visitante": {k: round(v * 100, 1) for k, v in p_visit.items()},
     }
 
+
 def estimar_lambdas(local, visitante, equipos):
     L = equipos.get(local, {"ataque": 1.3, "defensa": 1.0})
     V = equipos.get(visitante, {"ataque": 1.3, "defensa": 1.0})
@@ -424,14 +338,17 @@ def estimar_lambdas(local, visitante, equipos):
 def generar_bonoloto(numeros):
     return list(itertools.combinations(sorted(numeros), 6)) if len(numeros) >= 6 else []
 
+
 def generar_primitiva(numeros):
     return list(itertools.combinations(sorted(numeros), 6)) if len(numeros) >= 6 else []
+
 
 def generar_euromillones(numeros, estrellas):
     if len(numeros) < 5 or len(estrellas) < 2: return []
     cn = list(itertools.combinations(sorted(numeros), 5))
     ce = list(itertools.combinations(sorted(estrellas), 2))
     return [(n, e) for n in cn for e in ce]
+
 
 def barita_loteria(combinaciones, nivel, factores, min_ap):
     if nivel < 1 or nivel > len(factores):
@@ -445,11 +362,13 @@ def barita_loteria(combinaciones, nivel, factores, min_ap):
         return abs(suma - 125) + abs(pares - len(nums)//2) * 5
     return sorted(combinaciones, key=score)[:n]
 
+
 def baritas_loteria(combinaciones, niveles, factores, min_ap):
     res = list(combinaciones)
     for n in niveles:
         res = barita_loteria(res, n, factores, min_ap)
     return res
+
 
 def txt_loteria(combinaciones):
     lineas = []
@@ -460,6 +379,7 @@ def txt_loteria(combinaciones):
         else:
             lineas.append(" ".join(str(n).zfill(2) for n in c))
     return "\n".join(lineas)
+
 
 def coste_real(n_ap, precio, min_ap):
     if n_ap < min_ap:
@@ -518,30 +438,23 @@ if "equipos" not in st.session_state:
     st.session_state.equipos = dict(EQUIPOS_DEFAULT)
 if "partidos_jornada" not in st.session_state:
     st.session_state.partidos_jornada = [
-        ("LUXEMBURGO", "ISLANDIA", "0-3"),
-        ("ESLOVAQUIA", "KAZAJISTAN", "2-1"),
-        ("REPUBLICA CHECA", "INGLATERRA", "0-2"),
-        ("ESLOVENIA", "MACEDONIA", "2-0"),
-        ("BULGARIA", "ESTONIA", "0-0"),
-        ("SAN MARINO", "ALBANIA", "0-3"),
-        ("ESCOCIA", "SUIZA", "0-3"),
-        ("AZERBAIJAN", "LIECHTENSTEIN", ""),
-        ("GRECIA", "HOLANDA", ""),
-        ("ALEMANIA", "SERBIA", ""),
-        ("REP.IRLANDA", "AUSTRIA", ""),
-        ("GALES", "NORUEGA", ""),
-        ("MALTA", "GIBRALTAR", ""),
-        ("DINAMARCA", "PORTUGAL", ""),
+        ("Equipo 1 L", "Equipo 1 V", ""),
+        ("Equipo 2 L", "Equipo 2 V", ""),
+        ("Equipo 3 L", "Equipo 3 V", ""),
+        ("Equipo 4 L", "Equipo 4 V", ""),
+        ("Equipo 5 L", "Equipo 5 V", ""),
+        ("Equipo 6 L", "Equipo 6 V", ""),
+        ("Equipo 7 L", "Equipo 7 V", ""),
+        ("Equipo 8 L", "Equipo 8 V", ""),
+        ("Equipo 9 L", "Equipo 9 V", ""),
+        ("Equipo 10 L", "Equipo 10 V", ""),
+        ("Equipo 11 L", "Equipo 11 V", ""),
+        ("Equipo 12 L", "Equipo 12 V", ""),
+        ("Equipo 13 L", "Equipo 13 V", ""),
+        ("Equipo 14 L", "Equipo 14 V", ""),
     ]
 if "pleno_partido" not in st.session_state:
-    st.session_state.pleno_partido = ("ESPAÑA", "CROACIA", "4-1")
-if "probabilidades" not in st.session_state:
-    st.session_state.probabilidades = [
-        (31, 29, 40), (78, 15, 7), (9, 16, 74), (60, 26, 14),
-        (54, 28, 19), (2, 7, 91), (22, 27, 51), (82, 13, 5),
-        (29, 27, 44), (76, 15, 9), (28, 29, 43), (16, 21, 63),
-        (73, 20, 8), (28, 26, 46),
-    ]
+    st.session_state.pleno_partido = ("Local 15", "Visitante 15", "")
 if "red_sel" not in st.session_state:
     st.session_state.red_sel = "13"
 if "barita_factores" not in st.session_state:
@@ -574,13 +487,12 @@ with st.sidebar:
         [
             "Inicio",
             "Jornada actual",
+            "Jornada siguiente",
             "Quiniela",
-            "Probabilidades 1X2 + Pleno",
             "Bonoloto",
             "Primitiva",
             "Euromillones",
             "Configurar Barita",
-            "IA Magic",
             "Cuenta",
         ],
         label_visibility="collapsed",
@@ -609,7 +521,6 @@ if seccion == "Inicio":
         "margin-top:4px;'>Plataforma inteligente para quinielas y loterias</p>",
         unsafe_allow_html=True,
     )
-
     st.divider()
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Quiniela", "14+1")
@@ -623,84 +534,120 @@ if seccion == "Inicio":
 # ═══════════════════════════════════════════════
 elif seccion == "Jornada actual":
     st.title("Jornada actual")
-    st.write("Datos oficiales de SELAE.")
+    st.caption("Partidos con resultados oficiales desde LoteriaAPI.")
 
-    with st.spinner("Consultando la ultima jornada..."):
-        datos = obtener_ultima_jornada()
+    if st.button("Refrescar datos", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
+    with st.spinner("Consultando jornada actual..."):
+        datos = obtener_jornada("latest")
 
     if datos and "error" not in datos:
-        matchday = datos.get("matchday", "-")
-        draw_date = datos.get("draw_date", "-")
-        matches = datos.get("matches", [])
-        pleno = datos.get("pleno_15", {})
+        partidos, jornada_num, fecha = extraer_partidos(datos)
 
         c1, c2 = st.columns(2)
-        c1.metric("Jornada num.", str(matchday))
-        c2.metric("Fecha sorteo", str(draw_date))
+        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
+        c2.metric("Fecha", str(fecha) if fecha else "-")
 
-        st.divider()
-        st.subheader("Partidos y resultados")
-        for m in matches:
-            pos = m.get("position", "?")
-            home = m.get("home", "-")
-            away = m.get("away", "-")
-            sign = m.get("sign", "-")
-            st.write("#" + str(pos) + " - " + str(home) + " vs " + str(away) + " -> " + str(sign))
+        if partidos:
+            st.divider()
+            st.subheader("Partidos")
 
-        st.divider()
-        if st.button("Refrescar datos", use_container_width=True):
-            st.cache_data.clear()
-            st.rerun()
+            for i, (loc, vis, sig) in enumerate(partidos[:14]):
+                cols = st.columns([0.5, 3, 1, 3])
+                cols[0].markdown("**" + str(i+1) + "**")
+                cols[1].markdown(str(loc))
+                cols[2].markdown("**" + str(sig) + "**" if sig else "-")
+                cols[3].markdown(str(vis))
 
-    elif datos and "error" in datos:
-        st.error("No se han podido obtener datos oficiales: " + str(datos["error"]))
-        st.info("Registrate gratis en loteriasapi.com y anade API_KEY_LOTERIAS en Secrets.")
+            st.divider()
+            if st.button("Cargar en Quiniela", use_container_width=True, type="primary"):
+                st.session_state.partidos_jornada = partidos[:14]
+                st.session_state.signos = ["1"] * 14
+                st.session_state.apuestas_reducidas = None
+                st.session_state.baritas = []
+                st.success("Cargados " + str(len(partidos)) + " partidos. Ve a Quiniela.")
+        else:
+            st.warning("No se han podido extraer partidos de la respuesta.")
+            with st.expander("Ver respuesta cruda de la API"):
+                st.json(datos)
     else:
-        st.warning("No hay datos disponibles.")
+        st.error("Error de API: " + str(datos.get("error", "desconocido")))
+        st.info("Verifica que API_KEY_LOTERIAS esta bien configurada en Secrets.")
 
 
 # ═══════════════════════════════════════════════
-# QUINIELA - Tabla completa estilo web referencia
+# JORNADA SIGUIENTE
+# ═══════════════════════════════════════════════
+elif seccion == "Jornada siguiente":
+    st.title("Jornada siguiente")
+    st.caption("Partidos programados para la proxima jornada.")
+
+    if st.button("Refrescar datos", use_container_width=True, key="ref_next"):
+        st.cache_data.clear()
+        st.rerun()
+
+    with st.spinner("Consultando proxima jornada..."):
+        datos = obtener_jornada("next")
+
+    if datos and "error" not in datos:
+        partidos, jornada_num, fecha = extraer_partidos(datos)
+
+        c1, c2 = st.columns(2)
+        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
+        c2.metric("Fecha", str(fecha) if fecha else "-")
+
+        if partidos:
+            st.divider()
+            st.subheader("Partidos")
+
+            for i, (loc, vis, _) in enumerate(partidos[:14]):
+                cols = st.columns([0.5, 5, 5])
+                cols[0].markdown("**" + str(i+1) + "**")
+                cols[1].markdown(str(loc))
+                cols[2].markdown(str(vis))
+
+            st.divider()
+            if st.button("Cargar en Quiniela", use_container_width=True, type="primary", key="load_next"):
+                st.session_state.partidos_jornada = partidos[:14]
+                st.session_state.signos = ["1"] * 14
+                st.session_state.apuestas_reducidas = None
+                st.session_state.baritas = []
+                st.success("Cargados " + str(len(partidos)) + " partidos. Ve a Quiniela.")
+        else:
+            st.warning("No se han podido extraer partidos de la respuesta.")
+            with st.expander("Ver respuesta cruda de la API"):
+                st.json(datos)
+    else:
+        st.error("Error de API: " + str(datos.get("error", "desconocido")))
+        st.info("Es posible que la proxima jornada aun no este disponible.")
+
+
+# ═══════════════════════════════════════════════
+# QUINIELA
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
-    st.title("Calculo online de reducciones para la Quiniela")
-    st.caption("Introduce tu pronostico valido para la jornada, elige la reduccion, y pulsa el boton para ver las apuestas.")
+    st.title("Calculo de reducciones para la Quiniela")
+    st.caption("Introduce los partidos, marca dobles/triples, elige reduccion y genera las apuestas.")
 
-    # Cabecera de temporada y jornada
-    c1, c2, c3, c4 = st.columns([1, 1, 1, 3])
-    with c1:
-        st.markdown("**Temporada**")
-        st.markdown("**2026-2027**")
-    with c2:
-        st.markdown("**Jornada**")
-        st.markdown("**10**")
-    with c3:
-        st.markdown("**Fecha**")
-        st.markdown("**30-09-2026**")
+    # ── 1. CONFIGURAR PARTIDOS (editables) ──
+    st.subheader("1. Configura los partidos")
+    st.caption("Edita los equipos y marca 1-X-2. Varios por partido = doble o triple.")
 
-    st.markdown("---")
-
-    # ── CABECERA DE LA TABLA ──
-    hcols = st.columns([0.5, 3, 1, 1, 1, 1, 1.2])
-    hcols[0].markdown("<div class='tabla-header'>#</div>", unsafe_allow_html=True)
-    hcols[1].markdown("<div class='tabla-header' style='text-align:left;padding-left:8px;'>PARTIDO</div>", unsafe_allow_html=True)
-    hcols[2].markdown("<div class='tabla-header'>RESULT.</div>", unsafe_allow_html=True)
-    hcols[3].markdown("<div class='tabla-header'>1</div>", unsafe_allow_html=True)
-    hcols[4].markdown("<div class='tabla-header'>X</div>", unsafe_allow_html=True)
-    hcols[5].markdown("<div class='tabla-header'>2</div>", unsafe_allow_html=True)
-    hcols[6].markdown("<div class='tabla-header'>PROBAB.</div>", unsafe_allow_html=True)
-
-    # ── 14 PARTIDOS ──
     for i in range(14):
-        local, visit, resultado = st.session_state.partidos_jornada[i]
-        p1, pX, p2 = st.session_state.probabilidades[i]
+        local_actual, visit_actual, resultado = st.session_state.partidos_jornada[i]
 
-        cols = st.columns([0.5, 3, 1, 1, 1, 1, 1.2])
+        cols = st.columns([0.5, 2.5, 2.5, 1, 1, 1])
         cols[0].markdown("<div class='num-partido'>" + str(i+1) + "</div>", unsafe_allow_html=True)
-        cols[1].markdown("<div class='nombre-partido'>" + local + " - " + visit + "</div>", unsafe_allow_html=True)
-        cols[2].markdown("<div class='resultado-oficial'>" + (resultado if resultado else "-") + "</div>", unsafe_allow_html=True)
 
-        # Botones 1, X, 2
+        with cols[1]:
+            local = st.text_input("L" + str(i), value=local_actual, key="q_loc_" + str(i), label_visibility="collapsed")
+        with cols[2]:
+            visit = st.text_input("V" + str(i), value=visit_actual, key="q_vis_" + str(i), label_visibility="collapsed")
+
+        st.session_state.partidos_jornada[i] = (local, visit, resultado)
+
         for j, signo in enumerate(["1", "X", "2"]):
             with cols[3 + j]:
                 activo = signo in st.session_state.signos[i]
@@ -720,28 +667,26 @@ elif seccion == "Quiniela":
                         st.session_state.signos[i] = ordenar_signos(actual + signo)
                     st.rerun()
 
-        cols[6].markdown(
-            "<div class='probs'>" + str(p1) + "% " + str(pX) + "% " + str(p2) + "%</div>",
-            unsafe_allow_html=True,
-        )
-
-    # ── PLENO AL 15 ──
+    # ── 2. PLENO AL 15 ──
     st.markdown("---")
     st.markdown("<div class='titulo-seccion-dorado'>PLENO AL 15</div>", unsafe_allow_html=True)
 
-    eq_local, eq_visit, res_pleno = st.session_state.pleno_partido
+    eq_local, eq_visit, _ = st.session_state.pleno_partido
+    pl_cols = st.columns([0.5, 2.5, 2.5])
+    pl_cols[0].markdown("<div class='num-partido'>15</div>", unsafe_allow_html=True)
+    with pl_cols[1]:
+        eq_local = st.text_input("PL", value=eq_local, key="q_pl_loc", label_visibility="collapsed")
+    with pl_cols[2]:
+        eq_visit = st.text_input("PV", value=eq_visit, key="q_pl_vis", label_visibility="collapsed")
+    st.session_state.pleno_partido = (eq_local, eq_visit, "")
 
-    pcols = st.columns([0.5, 3, 1, 1, 1, 1, 1, 1, 1.2])
-    pcols[0].markdown("<div class='num-partido'>15</div>", unsafe_allow_html=True)
-    pcols[1].markdown("<div class='nombre-partido'>" + eq_local + " - " + eq_visit + "</div>", unsafe_allow_html=True)
-    pcols[2].markdown("<div class='resultado-oficial'>" + (res_pleno if res_pleno else "-") + "</div>", unsafe_allow_html=True)
-
-    # Botones 0, 1, 2, M para local
+    st.caption("Goles LOCAL:")
+    p_loc_cols = st.columns(4)
     for j, signo in enumerate(PLENO_OPCIONES):
-        with pcols[3 + j]:
+        with p_loc_cols[j]:
             activo = signo == st.session_state.pleno_local
             if st.button(
-                signo,
+                "L:" + signo,
                 key="pl_loc_" + signo,
                 use_container_width=True,
                 type="primary" if activo else "secondary",
@@ -749,14 +694,13 @@ elif seccion == "Quiniela":
                 st.session_state.pleno_local = signo
                 st.rerun()
 
-    # Segunda fila: goles visitante
-    pcols2 = st.columns([0.5, 3, 1, 1, 1, 1, 1, 1, 1.2])
-    pcols2[1].markdown("<div style='color:#a0a0b8;font-size:12px;'>Goles visitante</div>", unsafe_allow_html=True)
+    st.caption("Goles VISITANTE:")
+    p_vis_cols = st.columns(4)
     for j, signo in enumerate(PLENO_OPCIONES):
-        with pcols2[3 + j]:
+        with p_vis_cols[j]:
             activo = signo == st.session_state.pleno_visit
             if st.button(
-                signo,
+                "V:" + signo,
                 key="pl_vis_" + signo,
                 use_container_width=True,
                 type="primary" if activo else "secondary",
@@ -764,25 +708,28 @@ elif seccion == "Quiniela":
                 st.session_state.pleno_visit = signo
                 st.rerun()
 
-    # ── ACIERTOS BASE ──
+    # ── 3. RESUMEN ──
     st.markdown("---")
-    a1, a2, a3 = st.columns(3)
-    a1.metric("Aciertos Quiniela Base", "7")
-    a2.metric("Fallos Quiniela Base", "0")
-    a3.metric("Reduccion seleccionada", st.session_state.red_sel)
+    dobles, triples = contar_dobles_triples(st.session_state.signos)
+    apuestas_directas = 2 ** dobles * 3 ** triples
 
-    # ── SELECCION DE REDUCCION ──
+    r1, r2, r3, r4 = st.columns(4)
+    r1.metric("Triples", str(triples))
+    r2.metric("Dobles", str(dobles))
+    r3.metric("Apuestas directas", str(apuestas_directas))
+    r4.metric("Coste directo", str(round(apuestas_directas * PRECIO_QUINIELA, 2)) + " EUR")
+
+    # ── 4. REDUCCION ──
     st.markdown("---")
     st.markdown("<div class='titulo-seccion-dorado'>SELECCIONAR REDUCCION</div>", unsafe_allow_html=True)
 
     c_red = st.columns(4)
-    opciones_red = [
+    for i, (valor, label) in enumerate([
         ("13", "Reduccion al 13"),
         ("12", "Reduccion al 12"),
         ("11", "Reduccion al 11"),
         ("10", "Reduccion al 10"),
-    ]
-    for i, (valor, label) in enumerate(opciones_red):
+    ]):
         with c_red[i]:
             activo = st.session_state.red_sel == valor
             if st.button(
@@ -794,20 +741,9 @@ elif seccion == "Quiniela":
                 st.session_state.red_sel = valor
                 st.rerun()
 
-    # ── TRIPLES Y DOBLES ──
+    # ── 5. BOTONES ACCION ──
     st.markdown("---")
-    st.markdown("<div class='titulo-seccion-dorado'>N. de Triples y Dobles</div>", unsafe_allow_html=True)
-
-    dobles_actuales, triples_actuales = contar_dobles_triples(st.session_state.signos)
-    td1, td2 = st.columns(2)
-    with td1:
-        st.metric("Triples marcados", str(triples_actuales))
-    with td2:
-        st.metric("Dobles marcados", str(dobles_actuales))
-
-    # ── BOTONES DE ACCION ──
-    st.markdown("---")
-    b1, b2, b3 = st.columns(3)
+    b1, b2 = st.columns(2)
     with b1:
         if st.button("Borrar seleccion", use_container_width=True):
             st.session_state.signos = ["1"] * 14
@@ -817,33 +753,21 @@ elif seccion == "Quiniela":
             st.session_state.baritas = []
             st.rerun()
     with b2:
-        if st.button("Calcular pronostico", use_container_width=True):
-            # Aplicar probabilidades: marcar el signo mas probable de cada partido
-            nuevos_signos = []
-            for i in range(14):
-                p1, pX, p2 = st.session_state.probabilidades[i]
-                if p1 >= pX and p1 >= p2:
-                    nuevos_signos.append("1")
-                elif p2 >= pX and p2 >= p1:
-                    nuevos_signos.append("2")
-                else:
-                    nuevos_signos.append("X")
-            st.session_state.signos = nuevos_signos
-            st.rerun()
-    with b3:
         if st.button("Generar reduccion", type="primary", use_container_width=True):
-            # Mapear seleccion (13, 12, 11, 10) a la tabla de reduccion
-            mapa_red = {"13": "reducida_1", "12": "reducida_2", "11": "reducida_3", "10": "reducida_4"}
-            tipo_red = mapa_red.get(st.session_state.red_sel, "reducida_1")
-            apuestas = aplicar_reduccion_oficial(st.session_state.signos, tipo_red)
-            if not apuestas:
-                st.error("No has marcado suficientes dobles/triples para la Reduccion al " + st.session_state.red_sel + ". Necesitas al menos " + str(REDUCCIONES_QUINIELA[tipo_red]["min"]) + " partidos con esos signos.")
+            if apuestas_directas == 1:
+                st.warning("Marca al menos un doble o un triple para que la reduccion tenga sentido.")
             else:
-                st.session_state.apuestas_reducidas = apuestas
-                st.session_state.baritas = []
-            st.rerun()
+                with st.spinner("Calculando reduccion al " + st.session_state.red_sel + "..."):
+                    combinaciones = generar_combinaciones(st.session_state.signos)
+                    apuestas = reducir_por_cobertura(
+                        combinaciones,
+                        int(st.session_state.red_sel),
+                    )
+                    st.session_state.apuestas_reducidas = apuestas
+                    st.session_state.baritas = []
+                st.rerun()
 
-    # ── RESULTADOS ──
+    # ── 6. RESULTADOS ──
     if st.session_state.apuestas_reducidas:
         st.markdown("---")
         apuestas_actuales = list(st.session_state.apuestas_reducidas)
@@ -902,10 +826,8 @@ elif seccion == "Quiniela":
             with pestana:
                 inicio = i * BOLETOS_POR_PESTANA
                 fin = min(inicio + BOLETOS_POR_PESTANA, n_ap)
-
                 num_bol = fin - inicio
 
-                # Cabecera de columnas
                 cab = st.columns([0.5, 3, 1] + [0.6] * num_bol)
                 cab[0].markdown("<div class='boletin-cab'>#</div>", unsafe_allow_html=True)
                 cab[1].markdown("<div class='boletin-cab' style='text-align:left;padding-left:8px;'>Partido</div>", unsafe_allow_html=True)
@@ -913,12 +835,11 @@ elif seccion == "Quiniela":
                 for j in range(num_bol):
                     cab[3 + j].markdown("<div class='boletin-cab'>B" + str(inicio + j + 1) + "</div>", unsafe_allow_html=True)
 
-                # 14 filas
                 for p in range(14):
                     local, visit, resultado = st.session_state.partidos_jornada[p]
                     fila = st.columns([0.5, 3, 1] + [0.6] * num_bol)
                     fila[0].markdown("<div class='num-partido'>" + str(p+1) + "</div>", unsafe_allow_html=True)
-                    fila[1].markdown("<div class='nombre-partido'>" + local + " - " + visit + "</div>", unsafe_allow_html=True)
+                    fila[1].markdown("<div class='nombre-partido'>" + str(local) + " - " + str(visit) + "</div>", unsafe_allow_html=True)
                     fila[2].markdown("<div class='resultado-oficial'>" + (resultado if resultado else "-") + "</div>", unsafe_allow_html=True)
 
                     for j in range(num_bol):
@@ -945,60 +866,6 @@ elif seccion == "Quiniela":
             use_container_width=True,
             type="primary",
         )
-
-
-# ═══════════════════════════════════════════════
-# PROBABILIDADES
-# ═══════════════════════════════════════════════
-elif seccion == "Probabilidades 1X2 + Pleno":
-    st.title("Probabilidades 1X2 + Pleno al 15")
-
-    equipos_disponibles = sorted(st.session_state.equipos.keys())
-
-    st.markdown("### Emparejamientos (14 partidos)")
-    for i in range(14):
-        local_actual, visit_actual, _ = st.session_state.partidos_jornada[i]
-        cols = st.columns([1, 3, 3])
-        cols[0].markdown("**#" + str(i+1) + "**")
-        local = cols[1].text_input("Local " + str(i+1), value=local_actual, key="loc" + str(i), label_visibility="collapsed")
-        visit = cols[2].text_input("Visitante " + str(i+1), value=visit_actual, key="vis" + str(i), label_visibility="collapsed")
-        st.session_state.partidos_jornada[i] = (local, visit, st.session_state.partidos_jornada[i][2])
-
-    st.divider()
-    st.markdown("### Pleno al 15")
-    p_loc, p_vis = st.columns(2)
-    pl_local = p_loc.text_input("Local pleno", value=st.session_state.pleno_partido[0], key="pleno_loc_eq")
-    pl_visit = p_vis.text_input("Visitante pleno", value=st.session_state.pleno_partido[1], key="pleno_vis_eq")
-    st.session_state.pleno_partido = (pl_local, pl_visit, st.session_state.pleno_partido[2])
-
-    st.divider()
-
-    if st.button("Calcular", type="primary", use_container_width=True):
-        st.subheader("14 partidos")
-        for i, (local, visit, _) in enumerate(st.session_state.partidos_jornada):
-            lam_l, lam_v = estimar_lambdas(local, visit, st.session_state.equipos)
-            probs = predecir_1x2(lam_l, lam_v)
-            favorito = max(probs, key=probs.get)
-            st.markdown("**P" + str(i+1) + ": " + local + " vs " + visit + "**")
-            c1, c2, c3, c4 = st.columns(4)
-            c1.metric("1", str(probs["1"]) + "%")
-            c2.metric("X", str(probs["X"]) + "%")
-            c3.metric("2", str(probs["2"]) + "%")
-            c4.metric("Fav.", favorito)
-            st.divider()
-
-        st.subheader("Pleno al 15")
-        lam_l, lam_v = estimar_lambdas(pl_local, pl_visit, st.session_state.equipos)
-        pl = predecir_pleno(lam_l, lam_v)
-        c1, c2 = st.columns(2)
-        with c1:
-            st.markdown("**" + pl_local + "**")
-            for k in ["0", "1", "2", "M"]:
-                st.metric(k + " goles", str(pl["local"][k]) + "%")
-        with c2:
-            st.markdown("**" + pl_visit + "**")
-            for k in ["0", "1", "2", "M"]:
-                st.metric(k + " goles", str(pl["visitante"][k]) + "%")
 
 
 # ═══════════════════════════════════════════════
@@ -1311,31 +1178,6 @@ elif seccion == "Configurar Barita":
             "euromillones":[0.75, 0.70, 0.60, 0.55],
         }
         st.rerun()
-
-
-# ═══════════════════════════════════════════════
-# IA MAGIC
-# ═══════════════════════════════════════════════
-elif seccion == "IA Magic":
-    st.title("IA Magic")
-    st.write("Como funciona todo.")
-
-    st.subheader("Reducciones oficiales")
-    st.write("Las reducciones oficiales de SELAE garantizan aciertos con tablas predefinidas.")
-    st.write("Reduccion al 13: 4 triples -> 9 apuestas")
-    st.write("Reduccion al 12: 7 dobles -> 16 apuestas")
-    st.write("Reduccion al 11: 3 dobles + 3 triples -> 24 apuestas")
-    st.write("Reduccion al 10: 6 dobles + 2 triples -> 64 apuestas")
-
-    st.subheader("Poisson")
-    st.write("Modelo estadistico para probabilidades 1X2 y del Pleno al 15.")
-
-    st.subheader("Precios oficiales")
-    st.table({
-        "Juego": ["Quiniela", "Bonoloto", "Primitiva", "Euromillones"],
-        "EUR/apuesta": [PRECIO_QUINIELA, PRECIO_BONOLOTO, PRECIO_PRIMITIVA, PRECIO_EUROMILLONES],
-        "Min. apuestas": [MIN_QUINIELA, MIN_BONOLOTO, MIN_PRIMITIVA, MIN_EUROMILLONES],
-    })
 
 
 # ═══════════════════════════════════════════════
