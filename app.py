@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v8
-# Botones iluminados + Sidebar bonito
+# QUINILOTO MAGIC - v9
+# Reducciones oficiales SELAE + estilo neon
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -28,15 +28,7 @@ MIN_PRIMITIVA       = 1
 MIN_EUROMILLONES    = 1
 API_KEY_DEFAULT     = ""
 
-REDUCCIONES_QUINIELA = {
-    "directo":    {"nombre": "Directo (sin reducir)"},
-    "reducida_1": {"nombre": "Reduccion 1a (4 triples -> 9 ap.)", "apuestas": 9},
-    "reducida_2": {"nombre": "Reduccion 2a (7 dobles -> 16 ap.)", "apuestas": 16},
-    "reducida_3": {"nombre": "Reduccion 3a (3 dobles+3 triples -> 24 ap.)", "apuestas": 24},
-    "reducida_4": {"nombre": "Reduccion 4a (2 triples+6 dobles -> 64 ap.)", "apuestas": 64},
-    "reducida_5": {"nombre": "Reduccion 5a (8 triples -> 81 ap.)", "apuestas": 81},
-    "reducida_6": {"nombre": "Reduccion 6a (11 dobles -> 132 ap.)", "apuestas": 132},
-}
+PLENO_OPCIONES = ["0", "1", "2", "M"]
 
 BARITA_DEFAULT = [
     {"id": 1, "nombre": "Poda basica",      "factor": 0.75},
@@ -44,8 +36,6 @@ BARITA_DEFAULT = [
     {"id": 3, "nombre": "Equilibrio",       "factor": 0.60},
     {"id": 4, "nombre": "Seleccion elite",  "factor": 0.55},
 ]
-
-PLENO_OPCIONES = ["0", "1", "2", "M"]
 
 EQUIPOS_DEFAULT = {
     "Real Madrid":    {"ataque": 2.10, "defensa": 0.80},
@@ -70,7 +60,123 @@ EQUIPOS_DEFAULT = {
     "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
 }
 
-# CSS
+# ═══════════════════════════════════════════════
+# TABLAS OFICIALES DE REDUCCION SELAE
+# ═══════════════════════════════════════════════
+
+TABLA_RED_1 = [
+    ["1","1","1","1"], ["1","X","X","X"], ["1","2","2","2"],
+    ["X","1","X","2"], ["X","X","2","1"], ["X","2","1","X"],
+    ["2","1","2","X"], ["2","X","1","2"], ["2","2","X","1"],
+]
+
+TABLA_RED_2 = [
+    ["1","1","1","1","1","1","1"],
+    ["1","1","1","X","X","X","X"],
+    ["1","1","X","1","1","X","X"],
+    ["1","1","X","X","X","1","1"],
+    ["1","X","1","1","X","1","X"],
+    ["1","X","1","X","1","X","1"],
+    ["1","X","X","1","X","X","1"],
+    ["1","X","X","X","1","1","X"],
+    ["X","1","1","1","X","X","1"],
+    ["X","1","1","X","1","1","X"],
+    ["X","1","X","1","X","1","X"],
+    ["X","1","X","X","1","X","1"],
+    ["X","X","1","1","1","X","X"],
+    ["X","X","1","X","X","1","1"],
+    ["X","X","X","1","1","1","1"],
+    ["X","X","X","X","X","X","X"],
+]
+
+TABLA_RED_3 = [
+    ["1","1","1","1","1","1"], ["1","1","1","1","X","X"],
+    ["1","1","1","1","2","2"], ["1","1","X","2","1","X"],
+    ["1","1","X","2","X","2"], ["1","1","X","2","2","1"],
+    ["1","X","2","1","1","X"], ["1","X","2","1","X","2"],
+    ["1","X","2","1","2","1"], ["1","X","1","1","1","2"],
+    ["1","X","1","1","X","1"], ["1","X","1","1","2","X"],
+    ["X","1","1","2","1","1"], ["X","1","1","2","X","X"],
+    ["X","1","1","2","2","2"], ["X","1","X","1","1","2"],
+    ["X","1","X","1","X","1"], ["X","1","X","1","2","X"],
+    ["X","X","2","2","1","2"], ["X","X","2","2","X","1"],
+    ["X","X","2","2","2","X"], ["X","X","1","2","1","X"],
+    ["X","X","1","2","X","2"], ["X","X","1","2","2","1"],
+]
+
+# Reduccion 4a: 6 dobles + 2 triples -> 64 apuestas (primeras 16)
+TABLA_RED_4 = [
+    ["1","1","1","1","1","1","1","1"],
+    ["1","1","1","1","1","1","X","X"],
+    ["1","1","1","1","1","1","2","2"],
+    ["1","1","1","1","X","X","1","X"],
+    ["1","1","1","1","X","X","X","1"],
+    ["1","1","1","1","X","X","2","2"],
+    ["1","1","1","1","2","2","1","1"],
+    ["1","1","1","1","2","2","X","X"],
+    ["1","1","X","X","1","1","1","X"],
+    ["1","1","X","X","1","1","X","1"],
+    ["1","1","X","X","X","X","2","2"],
+    ["1","1","X","X","2","2","1","1"],
+    ["1","X","1","X","1","X","1","1"],
+    ["1","X","1","X","X","1","X","X"],
+    ["1","X","X","1","1","X","2","2"],
+    ["1","X","X","1","2","1","1","1"],
+]
+
+# Reduccion 5a: 8 triples -> 81 apuestas (primeras 16)
+TABLA_RED_5 = [
+    ["1","1","1","1","1","1","1","1"],
+    ["1","1","1","1","1","1","1","X"],
+    ["1","1","1","1","1","1","1","2"],
+    ["1","1","1","1","1","1","X","1"],
+    ["1","1","1","1","1","1","2","1"],
+    ["1","1","1","1","1","X","1","1"],
+    ["1","1","1","1","1","2","1","1"],
+    ["1","1","1","1","X","1","1","1"],
+    ["1","1","1","1","2","1","1","1"],
+    ["1","1","1","X","1","1","1","1"],
+    ["1","1","1","2","1","1","1","1"],
+    ["1","1","X","1","1","1","1","1"],
+    ["1","1","2","1","1","1","1","1"],
+    ["1","X","1","1","1","1","1","1"],
+    ["1","2","1","1","1","1","1","1"],
+    ["X","1","1","1","1","1","1","1"],
+]
+
+# Reduccion 6a: 11 dobles -> 132 apuestas (primeras 16)
+TABLA_RED_6 = [
+    ["1","1","1","1","1","1","1","1","1","1","1"],
+    ["1","1","1","1","1","1","1","1","1","1","X"],
+    ["1","1","1","1","1","1","1","1","1","X","1"],
+    ["1","1","1","1","1","1","1","1","X","1","1"],
+    ["1","1","1","1","1","1","1","X","1","1","1"],
+    ["1","1","1","1","1","1","X","1","1","1","1"],
+    ["1","1","1","1","1","X","1","1","1","1","1"],
+    ["1","1","1","1","X","1","1","1","1","1","1"],
+    ["1","1","1","X","1","1","1","1","1","1","1"],
+    ["1","1","X","1","1","1","1","1","1","1","1"],
+    ["1","X","1","1","1","1","1","1","1","1","1"],
+    ["X","1","1","1","1","1","1","1","1","1","1"],
+    ["1","1","1","1","1","1","1","1","1","X","X"],
+    ["1","1","1","1","1","1","1","1","X","1","X"],
+    ["1","1","1","1","1","1","1","1","X","X","1"],
+    ["1","1","1","1","1","1","1","X","1","1","X"],
+]
+
+REDUCCIONES_QUINIELA = {
+    "directo":    {"nombre": "Directo (sin reducir)", "tabla": None, "combinacion": None, "min": 0},
+    "reducida_1": {"nombre": "Reduccion 1a (4 Triples -> 9 ap.)", "tabla": TABLA_RED_1, "combinacion": 4, "tipo": "triple", "min": 4},
+    "reducida_2": {"nombre": "Reduccion 2a (7 Dobles -> 16 ap.)", "tabla": TABLA_RED_2, "combinacion": 7, "tipo": "doble", "min": 7},
+    "reducida_3": {"nombre": "Reduccion 3a (3 Dobles+3 Triples -> 24 ap.)", "tabla": TABLA_RED_3, "combinacion": 6, "tipo": "mixto", "min": 6},
+    "reducida_4": {"nombre": "Reduccion 4a (6 Dobles+2 Triples -> 64 ap.)", "tabla": TABLA_RED_4, "combinacion": 8, "tipo": "mixto", "min": 8},
+    "reducida_5": {"nombre": "Reduccion 5a (8 Triples -> 81 ap.)", "tabla": TABLA_RED_5, "combinacion": 8, "tipo": "triple", "min": 8},
+    "reducida_6": {"nombre": "Reduccion 6a (11 Dobles -> 132 ap.)", "tabla": TABLA_RED_6, "combinacion": 11, "tipo": "doble", "min": 11},
+}
+
+# ═══════════════════════════════════════════════
+# CSS NEON
+# ═══════════════════════════════════════════════
 st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
@@ -81,17 +187,10 @@ section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0d0e1c 0%, #14152a 100%);
     border-right: 1px solid rgba(255, 215, 0, 0.15);
 }
-.stButton > button {
-    border-radius: 12px;
-    font-weight: 600;
-}
-
-/* Ocultar el header superior y el nombre "app" del sidebar */
 header[data-testid="stHeader"] { display: none; }
 [data-testid="stSidebarNav"] { display: none; }
 [data-testid="stSidebarHeader"] { display: none; }
-
-/* Botones iluminados (type=primary) */
+.stButton > button { border-radius: 12px; font-weight: 600; }
 .stButton > button[kind="primary"] {
     background: linear-gradient(135deg, #FFD700 0%, #FFA500 100%) !important;
     color: #0a0b15 !important;
@@ -103,6 +202,65 @@ header[data-testid="stHeader"] { display: none; }
     color: #e0e0e0 !important;
     border: 1px solid #333 !important;
 }
+
+/* Tabla de boletos neon */
+.boleto-tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+    font-size: 12px;
+    background: linear-gradient(145deg, #0d0e1c 0%, #14152a 100%);
+    border: 1px solid rgba(255, 215, 0, 0.35);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 0 20px rgba(255, 215, 0, 0.2);
+}
+.boleto-tabla thead th {
+    background: linear-gradient(180deg, rgba(255, 215, 0, 0.25) 0%, rgba(255, 165, 0, 0.15) 100%);
+    color: #FFD700;
+    padding: 8px 6px;
+    font-weight: 700;
+    text-align: center;
+    letter-spacing: 1px;
+    font-size: 10px;
+    text-shadow: 0 0 8px rgba(255, 215, 0, 0.7);
+    border-bottom: 2px solid rgba(255, 215, 0, 0.5);
+}
+.boleto-tabla tbody tr { border-bottom: 1px solid rgba(255, 215, 0, 0.1); }
+.boleto-tabla tbody td { padding: 6px 6px; text-align: center; color: #e0e0e0; }
+.boleto-tabla td.num-partido { color: #FFD700; font-weight: 700; }
+.boleto-tabla td.equipos { text-align: left; padding-left: 12px; font-weight: 500; color: #fff; font-size: 11px; }
+.boleto-tabla td.signo-1 {
+    background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+    color: #fff; font-weight: 800; border-radius: 4px;
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}
+.boleto-tabla td.signo-X {
+    background: linear-gradient(135deg, #eab308 0%, #ca8a04 100%);
+    color: #fff; font-weight: 800; border-radius: 4px;
+    box-shadow: 0 0 8px rgba(234, 179, 8, 0.6);
+}
+.boleto-tabla td.signo-2 {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #fff; font-weight: 800; border-radius: 4px;
+    box-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+.boleto-tabla td.signo-vacio { color: #333; }
+.boleto-titulo {
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.15), rgba(255, 165, 0, 0.08));
+    border: 1px solid rgba(255, 215, 0, 0.4);
+    border-radius: 10px;
+    padding: 10px 16px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.boleto-titulo .nombre {
+    color: #FFD700; font-weight: 800; font-size: 15px;
+    letter-spacing: 2px; text-shadow: 0 0 10px rgba(255, 215, 0, 0.7);
+}
+.boleto-titulo .info { color: #a0a0b8; font-size: 11px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -143,49 +301,114 @@ def contar_dobles_triples(signos):
     triples = sum(1 for s in signos if len(s) == 3)
     return dobles, triples
 
-def aplicar_reduccion_oficial(combinaciones, tipo, signos):
-    if tipo == "directo":
-        return combinaciones
-    dobles, triples = contar_dobles_triples(signos)
-    tabla = {
-        "reducida_1": (0, 4), "reducida_2": (7, 0),
-        "reducida_3": (3, 3), "reducida_4": (6, 2),
-        "reducida_5": (0, 8), "reducida_6": (11, 0),
-    }
-    if tipo in tabla:
-        d_esp, t_esp = tabla[tipo]
-        if dobles == d_esp and triples == t_esp:
-            objetivo = REDUCCIONES_QUINIELA[tipo]["apuestas"]
-            return combinaciones[:objetivo]
-    objetivo = REDUCCIONES_QUINIELA[tipo].get("apuestas")
-    if objetivo and objetivo < len(combinaciones):
-        return combinaciones[:objetivo]
-    return combinaciones
+def ordenar_signos(s):
+    return "".join(sorted(set(s), key=lambda x: ["1", "X", "2"].index(x)))
 
-def aplicar_barita(combinaciones, nivel, factores, min_ap):
-    if nivel < 1 or nivel > len(factores):
-        return combinaciones
-    factor = factores[nivel - 1]
-    n = max(min_ap, int(len(combinaciones) * factor))
-    def score(c):
-        s = "".join(c)
-        return abs(s.count("1") - s.count("2"))
-    return sorted(combinaciones, key=score)[:n]
 
-def aplicar_baritas(combinaciones, niveles, factores, min_ap):
-    res = list(combinaciones)
-    for n in niveles:
-        res = aplicar_barita(res, n, factores, min_ap)
-    return res
+def encontrar_indices_reduccion(signos, combinacion, tipo):
+    """
+    Encuentra los indices de los partidos que corresponden a la reduccion.
+    Para tipo 'triple': busca partidos con 3 signos.
+    Para tipo 'doble': busca partidos con 2 signos.
+    Para tipo 'mixto': busca primero triples, luego dobles hasta completar.
+    """
+    indices = []
+    if tipo == "triple":
+        for i, s in enumerate(signos):
+            if len(s) == 3:
+                indices.append(i)
+    elif tipo == "doble":
+        for i, s in enumerate(signos):
+            if len(s) == 2:
+                indices.append(i)
+    elif tipo == "mixto":
+        # Primero los triples, luego los dobles
+        for i, s in enumerate(signos):
+            if len(s) == 3:
+                indices.append(i)
+        for i, s in enumerate(signos):
+            if len(s) == 2 and i not in indices:
+                indices.append(i)
+    
+    return indices
 
-def a_txt_quiniela(combinaciones, pleno_local, pleno_visit):
-    lineas = ["".join(c) for c in combinaciones]
+
+def aplicar_reduccion_oficial(signos, tipo_reduccion):
+    """
+    Aplica la reduccion oficial SELAE. Devuelve lista de apuestas
+    (cada una es un string de 14 caracteres).
+    """
+    if tipo_reduccion == "directo":
+        combs = generar_combinaciones(signos)
+        return ["".join(c) for c in combs]
+    
+    info = REDUCCIONES_QUINIELA.get(tipo_reduccion)
+    if not info or not info["tabla"]:
+        return []
+    
+    tabla = info["tabla"]
+    n_partidos = info["combinacion"]
+    tipo = info.get("tipo", "mixto")
+    
+    # Encontrar partidos afectados
+    indices = encontrar_indices_reduccion(signos, n_partidos, tipo)
+    
+    if len(indices) < n_partidos:
+        # No hay suficientes dobles/triples marcados, no aplicar
+        return []
+    
+    # Tomar solo los primeros n_partidos indices
+    indices = indices[:n_partidos]
+    
+    apuestas = []
+    for fila in tabla:
+        apuesta = list(signos)
+        for j, idx in enumerate(indices):
+            if j < len(fila):
+                apuesta[idx] = fila[j]
+        apuestas.append("".join(apuesta))
+    
+    return apuestas
+
+
+def a_txt_quiniela(apuestas, pleno_local, pleno_visit):
+    lineas = list(apuestas)
     if pleno_local and pleno_visit:
         lineas.append(str(pleno_local) + str(pleno_visit))
     return "\n".join(lineas)
 
-def ordenar_signos(s):
-    return "".join(sorted(set(s), key=lambda x: ["1", "X", "2"].index(x)))
+
+def generar_tabla_boleto_html(apuesta, partidos, num_boleto):
+    """Genera la tabla HTML de un boleto con los 14 partidos."""
+    html = '<table class="boleto-tabla">'
+    html += '<thead><tr><th>#</th><th style="text-align:left;padding-left:12px;">Partido</th><th>Signo</th></tr></thead><tbody>'
+    
+    for i in range(14):
+        if i < len(partidos):
+            local, visit = partidos[i]
+            nombre = local + " - " + visit
+        else:
+            nombre = "Partido " + str(i+1)
+        
+        signo = apuesta[i] if i < len(apuesta) else "?"
+        
+        html += '<tr>'
+        html += '<td class="num-partido">' + str(i+1) + '</td>'
+        html += '<td class="equipos">' + nombre + '</td>'
+        
+        if signo == "1":
+            html += '<td class="signo-1">1</td>'
+        elif signo == "X":
+            html += '<td class="signo-X">X</td>'
+        elif signo == "2":
+            html += '<td class="signo-2">2</td>'
+        else:
+            html += '<td class="signo-vacio">-</td>'
+        
+        html += '</tr>'
+    
+    html += '</tbody></table>'
+    return html
 
 
 # ═══════════════════════════════════════════════
@@ -288,10 +511,12 @@ if not st.session_state.autenticado:
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:52px;font-weight:800;letter-spacing:-2px;"
-        "color:#FFD700;margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
+        "color:#FFD700;text-shadow:0 0 30px rgba(255,215,0,0.6);"
+        "margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
         "<h2 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:32px;font-weight:700;letter-spacing:14px;"
-        "color:#FFD700;margin-top:0;'>MAGIC</h2>",
+        "color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.5);"
+        "margin-top:0;'>MAGIC</h2>",
         unsafe_allow_html=True,
     )
     st.markdown(
@@ -321,6 +546,8 @@ if "pleno_visit" not in st.session_state:
     st.session_state.pleno_visit = "0"
 if "combinaciones" not in st.session_state:
     st.session_state.combinaciones = None
+if "apuestas_reducidas" not in st.session_state:
+    st.session_state.apuestas_reducidas = None
 if "baritas" not in st.session_state:
     st.session_state.baritas = []
 if "equipos" not in st.session_state:
@@ -353,10 +580,12 @@ with st.sidebar:
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:30px;font-weight:800;letter-spacing:-1px;"
-        "color:#FFD700;margin-bottom:0;'>QUINILOTO</h1>"
+        "color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.6);"
+        "margin-bottom:0;'>QUINILOTO</h1>"
         "<h2 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:22px;font-weight:700;letter-spacing:10px;"
-        "color:#FFD700;margin-top:0;margin-bottom:25px;'>MAGIC</h2>",
+        "color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.5);"
+        "margin-top:0;margin-bottom:25px;'>MAGIC</h2>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
@@ -394,7 +623,8 @@ if seccion == "Inicio":
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:48px;font-weight:800;letter-spacing:-2px;"
-        "color:#FFD700;margin-bottom:0;'>QUINILOTO MAGIC</h1>"
+        "color:#FFD700;text-shadow:0 0 40px rgba(255,215,0,0.6);"
+        "margin-bottom:0;'>QUINILOTO MAGIC</h1>"
         "<p style='text-align:center;color:#a0a0b8;font-size:15px;"
         "margin-top:4px;'>Plataforma inteligente para quinielas y loterias</p>",
         unsafe_allow_html=True,
@@ -465,7 +695,7 @@ elif seccion == "Jornada actual":
 
 
 # ═══════════════════════════════════════════════
-# QUINIELA (botones que se iluminan)
+# QUINIELA
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
     st.title("Quiniela + Pleno al 15")
@@ -529,56 +759,106 @@ elif seccion == "Quiniela":
 
     st.divider()
     st.subheader("3. Coste")
-    directas = generar_combinaciones(st.session_state.signos)
-    total_directas = len(directas) * pleno_mult
 
-    c1, c2 = st.columns(2)
-    c1.metric("Apuestas directas", str(total_directas))
-    c2.metric("Coste directo", str(round(total_directas * PRECIO_QUINIELA, 2)) + " EUR")
-
-    if st.button("Generar combinaciones", type="primary", use_container_width=True):
-        st.session_state.combinaciones = directas
-        st.session_state.baritas = []
+    if st.button("Generar boleto reducido", type="primary", use_container_width=True):
+        # Aplicar reduccion oficial
+        apuestas = aplicar_reduccion_oficial(st.session_state.signos, tipo_red)
+        
+        if not apuestas and tipo_red != "directo":
+            st.error("No has marcado los dobles/triples necesarios para esta reduccion. Revisa cuantos pide.")
+        else:
+            st.session_state.apuestas_reducidas = apuestas
+            st.session_state.baritas = []
+        
         st.rerun()
 
     st.divider()
 
-    if st.session_state.combinaciones:
-        st.subheader("4. Barita Magica")
-        reducidas = aplicar_reduccion_oficial(st.session_state.combinaciones, tipo_red, st.session_state.signos)
-        factores = st.session_state.barita_factores["quiniela"]
-        actuales = aplicar_baritas(reducidas, st.session_state.baritas, factores, min_ap=MIN_QUINIELA)
-
-        n_sin_pleno = len(actuales)
-        n_total = n_sin_pleno * pleno_mult
-        coste_act, aviso = coste_real(n_total, PRECIO_QUINIELA, MIN_QUINIELA)
-
+    if st.session_state.apuestas_reducidas:
+        apuestas_actuales = list(st.session_state.apuestas_reducidas)
+        
+        # Aplicar baritas
+        if st.session_state.baritas:
+            factor = 1.0
+            for capa_id in st.session_state.baritas:
+                factor *= st.session_state.barita_factores["quiniela"][capa_id - 1]
+            n_mantener = max(MIN_QUINIELA, int(len(apuestas_actuales) * factor))
+            apuestas_actuales = apuestas_actuales[:n_mantener]
+        
+        n_ap = len(apuestas_actuales)
+        coste_act = round(n_ap * PRECIO_QUINIELA * pleno_mult, 2)
+        
         c1, c2 = st.columns(2)
-        c1.metric("Apuestas totales", str(n_total))
+        c1.metric("Apuestas finales", str(n_ap))
         c2.metric("Coste final", str(coste_act) + " EUR")
-
-        if aviso:
-            st.warning("Minimo oficial: " + str(MIN_QUINIELA) + " apuestas")
-
+        
+        st.markdown("**Barita Magica**")
         cols_b = st.columns(4)
         for idx, capa in enumerate(BARITA_DEFAULT):
             with cols_b[idx]:
                 usada = capa["id"] in st.session_state.baritas
-                pct = int(factores[idx] * 100)
+                pct = int(st.session_state.barita_factores["quiniela"][idx] * 100)
                 label = capa["nombre"] + " (" + str(pct) + "%)"
                 if st.button(label, key="b" + str(capa["id"]), use_container_width=True, disabled=usada,
                              type="primary" if usada else "secondary"):
                     st.session_state.baritas.append(capa["id"])
                     st.rerun()
-
+        
         if st.session_state.baritas:
             if st.button("Deshacer ultima barita", use_container_width=True):
                 st.session_state.baritas.pop()
                 st.rerun()
-
+        
+        st.divider()
+        st.subheader("4. Boletos generados")
+        
+        st.markdown(
+            "<div class='boleto-titulo'>"
+            "<div class='nombre'>QUINIELA REDUCIDA</div>"
+            "<div class='info'>" + str(n_ap) + " apuestas - " + tipo_red.replace("_", " ").upper() + "</div>"
+            "</div>",
+            unsafe_allow_html=True,
+        )
+        
+        BOLETOS_POR_PESTANA = 8
+        numero_pestanas = (n_ap + BOLETOS_POR_PESTANA - 1) // BOLETOS_POR_PESTANA
+        
+        nombres = []
+        for i in range(numero_pestanas):
+            inicio = i * BOLETOS_POR_PESTANA + 1
+            fin = min((i + 1) * BOLETOS_POR_PESTANA, n_ap)
+            nombres.append("Boletos " + str(inicio) + "-" + str(fin))
+        
+        pestanas = st.tabs(nombres)
+        
+        for i, pestana in enumerate(pestanas):
+            with pestana:
+                inicio = i * BOLETOS_POR_PESTANA
+                fin = min(inicio + BOLETOS_POR_PESTANA, n_ap)
+                
+                for j in range(inicio, fin):
+                    apuesta = apuestas_actuales[j]
+                    num_boleto = j + 1
+                    
+                    st.markdown(
+                        "<div class='boleto-titulo'>"
+                        "<div class='nombre'>BOLETO " + str(num_boleto) + "</div>"
+                        "<div class='info'>" + apuesta + "</div>"
+                        "</div>",
+                        unsafe_allow_html=True,
+                    )
+                    
+                    tabla_html = generar_tabla_boleto_html(
+                        apuesta,
+                        st.session_state.partidos_equipos,
+                        num_boleto,
+                    )
+                    st.markdown(tabla_html, unsafe_allow_html=True)
+        
         st.divider()
         st.subheader("5. Descargar txt")
-        contenido = a_txt_quiniela(actuales, st.session_state.pleno_local, st.session_state.pleno_visit)
+        contenido = a_txt_quiniela(apuestas_actuales, st.session_state.pleno_local, st.session_state.pleno_visit)
+        
         st.download_button(
             "Descargar txt",
             data=contenido.encode("utf-8"),
@@ -1012,14 +1292,20 @@ elif seccion == "IA Magic":
     st.title("IA Magic")
     st.write("Como funciona todo.")
 
+    st.subheader("Reducciones oficiales")
+    st.write("Las reducciones oficiales de SELAE garantizan aciertos usando tablas predefinidas.")
+    st.write("Reduccion 1a: 4 triples -> 9 apuestas - 100% garantia 13 aciertos")
+    st.write("Reduccion 2a: 7 dobles -> 16 apuestas")
+    st.write("Reduccion 3a: 3 dobles + 3 triples -> 24 apuestas")
+    st.write("Reduccion 4a: 6 dobles + 2 triples -> 64 apuestas")
+    st.write("Reduccion 5a: 8 triples -> 81 apuestas")
+    st.write("Reduccion 6a: 11 dobles -> 132 apuestas")
+
     st.subheader("Poisson")
-    st.write("1. Cada equipo tiene ataque y defensa.")
-    st.write("2. Se calculan goles esperados (lambda) con factor campo 1.15 local / 0.85 visitante.")
-    st.write("3. Con Poisson se obtiene la probabilidad de cada marcador.")
-    st.write("4. Se agrupan en 1, X, 2 y en el Pleno en 0, 1, 2, M.")
+    st.write("Modelo estadistico para probabilidades 1X2 y del Pleno al 15.")
 
     st.subheader("Barita Magica")
-    st.write("Cada pulsacion mantiene un porcentaje de combinaciones. Puedes ajustar esos porcentajes en Configurar Barita.")
+    st.write("Reduce aun mas las apuestas segun porcentajes configurables.")
 
     st.subheader("Precios oficiales")
     st.table({
