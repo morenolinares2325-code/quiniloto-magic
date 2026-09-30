@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v13
-# Auto-carga equipos + reduccion rapida 13/12/11/10
+# QUINILOTO MAGIC - v14
+# Optimizado: rapido, fluido, sin bloqueos
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -29,6 +29,11 @@ MIN_BONOLOTO        = 2
 MIN_PRIMITIVA       = 1
 MIN_EUROMILLONES    = 1
 
+# Limites para que la app no se cuelgue
+MAX_COMBINACIONES_DIRECTAS = 100000
+MAX_APUESTAS_FINALES = 5000
+MAX_BOLETOS_VISUALES = 200
+
 PLENO_OPCIONES = ["0", "1", "2", "M"]
 
 BARITA_DEFAULT = [
@@ -49,16 +54,6 @@ EQUIPOS_DEFAULT = {
     "Athletic":       {"ataque": 1.20, "defensa": 0.90},
     "Real Sociedad":  {"ataque": 1.30, "defensa": 0.90},
     "Girona":         {"ataque": 1.60, "defensa": 1.00},
-    "Osasuna":        {"ataque": 1.10, "defensa": 1.00},
-    "Celta":          {"ataque": 1.20, "defensa": 1.10},
-    "Rayo":           {"ataque": 1.10, "defensa": 1.00},
-    "Mallorca":       {"ataque": 1.00, "defensa": 0.95},
-    "Getafe":         {"ataque": 0.95, "defensa": 0.90},
-    "Alaves":         {"ataque": 1.05, "defensa": 1.00},
-    "Las Palmas":     {"ataque": 1.10, "defensa": 1.15},
-    "Espanyol":       {"ataque": 1.00, "defensa": 1.05},
-    "Leganes":        {"ataque": 0.90, "defensa": 1.00},
-    "Valladolid":     {"ataque": 0.85, "defensa": 1.20},
 }
 
 # ─────────────────────────────────────────────────
@@ -89,38 +84,25 @@ header[data-testid="stHeader"] { display: none; }
     color: #e0e0e0 !important;
     border: 1px solid #333 !important;
 }
-.tabla-header {
-    background: linear-gradient(180deg, rgba(255, 215, 0, 0.15) 0%, rgba(255, 165, 0, 0.05) 100%);
-    border-bottom: 2px solid rgba(255, 215, 0, 0.4);
-    padding: 8px 4px;
-    color: #FFD700;
-    font-weight: 700;
-    text-align: center;
-    font-size: 12px;
-    text-shadow: 0 0 6px rgba(255, 215, 0, 0.5);
-}
 .num-partido { color: #FFD700; font-weight: 700; font-size: 14px; text-align: center; padding-top: 6px; }
 .nombre-partido { color: #ffffff; font-weight: 500; font-size: 13px; padding-top: 6px; }
 .resultado-oficial { color: #a0a0b8; font-size: 12px; text-align: center; padding-top: 8px; }
 .boletin-cab {
     background: linear-gradient(180deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 165, 0, 0.15) 100%);
     color: #FFD700; text-align: center; font-weight: 700; font-size: 11px;
-    padding: 6px 2px; border-radius: 4px; text-shadow: 0 0 6px rgba(255, 215, 0, 0.6);
+    padding: 6px 2px; border-radius: 4px;
 }
 .signo-celda {
     display: inline-block; padding: 4px 8px; border-radius: 4px;
     font-weight: 800; font-size: 12px; min-width: 22px; text-align: center;
 }
-.signo-1 { background: #22c55e; color: white; box-shadow: 0 0 8px rgba(34,197,94,0.6); }
-.signo-X { background: #eab308; color: white; box-shadow: 0 0 8px rgba(234,179,8,0.6); }
-.signo-2 { background: #ef4444; color: white; box-shadow: 0 0 8px rgba(239,68,68,0.6); }
-.titulo-seccion-dorado {
-    color: #FFD700; font-weight: 800; letter-spacing: 1px;
-    text-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
-}
+.signo-1 { background: #22c55e; color: white; }
+.signo-X { background: #eab308; color: white; }
+.signo-2 { background: #ef4444; color: white; }
+.titulo-seccion-dorado { color: #FFD700; font-weight: 800; letter-spacing: 1px; }
 .titulo-columnas {
     text-align: center; color: #FFD700; font-weight: 800; font-size: 20px;
-    text-shadow: 0 0 20px rgba(255, 215, 0, 0.7); padding: 12px 0;
+    padding: 12px 0;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -136,15 +118,14 @@ def _get_api_key():
         return ""
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=1800, show_spinner=False)
 def obtener_jornada(endpoint):
-    """endpoint = 'latest' o 'next'"""
     key = _get_api_key()
     if not key:
-        return {"error": "API_KEY_LOTERIAS no configurada en Secrets."}
+        return {"error": "API_KEY_LOTERIAS no configurada."}
     try:
         url = "https://api.loteriasapi.com/api/v1/results/quiniela/" + endpoint
-        r = requests.get(url, headers={"X-API-Key": key}, timeout=15)
+        r = requests.get(url, headers={"X-API-Key": key}, timeout=10)
         r.raise_for_status()
         return r.json()
     except Exception as e:
@@ -152,49 +133,33 @@ def obtener_jornada(endpoint):
 
 
 def extraer_partidos(datos):
-    """Extrae partidos de la respuesta JSON de forma flexible."""
     partidos = []
     jornada_num = None
     fecha = None
-
     if not isinstance(datos, dict):
         return partidos, jornada_num, fecha
-
-    jornada_num = (
-        datos.get("jornada") or datos.get("matchday") or datos.get("numero")
-        or datos.get("num_jornada")
-    )
-    fecha = (
-        datos.get("fecha") or datos.get("draw_date")
-        or datos.get("fecha_sorteo") or datos.get("date")
-    )
-
+    jornada_num = datos.get("jornada") or datos.get("matchday") or datos.get("numero")
+    fecha = datos.get("fecha") or datos.get("draw_date") or datos.get("fecha_sorteo")
     candidatos = ["resultados", "matches", "partidos", "games", "fixtures", "data"]
     lista = None
     for k in candidatos:
         if k in datos and isinstance(datos[k], list):
             lista = datos[k]
             break
-
     if lista is None:
         for v in datos.values():
             if isinstance(v, dict):
-                sub_partidos, sub_j, sub_f = extraer_partidos(v)
-                if sub_partidos:
-                    return sub_partidos, sub_j, sub_f
-
+                sp, sj, sf = extraer_partidos(v)
+                if sp:
+                    return sp, sj, sf
     if lista:
         for r in lista:
             if not isinstance(r, dict):
                 continue
-            local = (r.get("local") or r.get("home") or r.get("equipo_local")
-                     or r.get("team1") or r.get("local_team") or "-")
-            visit = (r.get("visitante") or r.get("away") or r.get("equipo_visitante")
-                     or r.get("team2") or r.get("visit_team") or "-")
-            signo = (r.get("signo") or r.get("result") or r.get("sign")
-                     or r.get("resultado") or "")
+            local = r.get("local") or r.get("home") or r.get("equipo_local") or "-"
+            visit = r.get("visitante") or r.get("away") or r.get("equipo_visitante") or "-"
+            signo = r.get("signo") or r.get("result") or r.get("sign") or ""
             partidos.append((local, visit, signo))
-
     return partidos, jornada_num, fecha
 
 
@@ -216,46 +181,33 @@ def ordenar_signos(s):
 
 
 def reducir_por_cobertura(combinaciones, garantia, objetivo=None):
-    """
-    Reduccion RAPIDA por muestreo + filtro de diversidad.
-    Devuelve un numero razonable de columnas en 1-3 segundos.
-    NO es cobertura matematica perfecta (para eso se necesitan tablas
-    oficiales precalculadas), pero se aproxima al resultado de webs de referencia.
-    """
+    """Reduccion rapida por muestreo."""
     n_total = len(combinaciones)
     if n_total == 0:
         return []
-
-    # Objetivo de columnas segun garantia (ratios empiricos)
     if objetivo is None:
         ratios = {13: 0.0625, 12: 0.0150, 11: 0.0030, 10: 0.0008}
         objetivo = max(MIN_QUINIELA, int(n_total * ratios.get(garantia, 0.01)))
-
     if objetivo >= n_total:
         return ["".join(c) for c in combinaciones]
 
     random.seed(42)
     combos_lista = [tuple(c) for c in combinaciones]
-
     indices = list(range(n_total))
     random.shuffle(indices)
 
     seleccionadas = []
-    vistos_por_partido = [set() for _ in range(14)]
+    vistos = [set() for _ in range(14)]
 
     for idx in indices:
         if len(seleccionadas) >= objetivo:
             break
         c = combos_lista[idx]
-        aporta = False
-        for p in range(14):
-            if c[p] not in vistos_por_partido[p]:
-                aporta = True
-                break
+        aporta = any(c[p] not in vistos[p] for p in range(14))
         if aporta or len(seleccionadas) > objetivo * 0.7:
             seleccionadas.append(c)
             for p in range(14):
-                vistos_por_partido[p].add(c[p])
+                vistos[p].add(c[p])
 
     if len(seleccionadas) < objetivo:
         for idx in indices:
@@ -279,17 +231,6 @@ def a_txt_quiniela(apuestas, pleno_local, pleno_visit):
 # ═══════════════════════════════════════════════
 def poisson(k, lam):
     return (lam ** k) * math.exp(-lam) / math.factorial(k)
-
-
-def predecir_1x2(lam_l, lam_v, max_g=10):
-    p1 = pX = p2 = 0.0
-    for gl in range(max_g + 1):
-        for gv in range(max_g + 1):
-            p = poisson(gl, lam_l) * poisson(gv, lam_v)
-            if gl > gv: p1 += p
-            elif gl == gv: pX += p
-            else: p2 += p
-    return {"1": round(p1*100, 1), "X": round(pX*100, 1), "2": round(p2*100, 1)}
 
 
 def estimar_lambdas(local, visitante, equipos):
@@ -363,18 +304,13 @@ if not st.session_state.autenticado:
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:52px;font-weight:800;letter-spacing:-2px;"
-        "color:#FFD700;text-shadow:0 0 30px rgba(255,215,0,0.6);"
-        "margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
+        "color:#FFD700;margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
         "<h2 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:32px;font-weight:700;letter-spacing:14px;"
-        "color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.5);"
-        "margin-top:0;'>MAGIC</h2>",
+        "color:#FFD700;margin-top:0;'>MAGIC</h2>",
         unsafe_allow_html=True,
     )
-    st.markdown(
-        "<p style='text-align:center;color:#a0a0b8;font-size:14px;'>Acceso privado</p>",
-        unsafe_allow_html=True,
-    )
+    st.markdown("<p style='text-align:center;color:#a0a0b8;font-size:14px;'>Acceso privado</p>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         pwd = st.text_input("Contrasena", type="password", label_visibility="collapsed")
@@ -390,20 +326,23 @@ if not st.session_state.autenticado:
 # ═══════════════════════════════════════════════
 # SESSION STATE
 # ═══════════════════════════════════════════════
-if "signos" not in st.session_state:
-    st.session_state.signos = ["1"] * 14
-if "pleno_local" not in st.session_state:
-    st.session_state.pleno_local = "1"
-if "pleno_visit" not in st.session_state:
-    st.session_state.pleno_visit = "0"
-if "apuestas_reducidas" not in st.session_state:
-    st.session_state.apuestas_reducidas = None
-if "baritas" not in st.session_state:
-    st.session_state.baritas = []
-if "equipos" not in st.session_state:
-    st.session_state.equipos = dict(EQUIPOS_DEFAULT)
-if "partidos_jornada" not in st.session_state:
-    st.session_state.partidos_jornada = [
+defaults = {
+    "signos": ["1"] * 14,
+    "pleno_local": "1",
+    "pleno_visit": "0",
+    "apuestas_reducidas": None,
+    "baritas": [],
+    "equipos": dict(EQUIPOS_DEFAULT),
+    "red_sel": "13",
+    "partidos_cargados": False,
+    "auto_load_intentado": False,
+    "barita_factores": {
+        "quiniela":    [0.75, 0.70, 0.60, 0.55],
+        "bonoloto":    [0.75, 0.70, 0.60, 0.55],
+        "primitiva":   [0.75, 0.70, 0.60, 0.55],
+        "euromillones":[0.75, 0.70, 0.60, 0.55],
+    },
+    "partidos_jornada": [
         ("Equipo 1 L", "Equipo 1 V", ""),
         ("Equipo 2 L", "Equipo 2 V", ""),
         ("Equipo 3 L", "Equipo 3 V", ""),
@@ -418,39 +357,31 @@ if "partidos_jornada" not in st.session_state:
         ("Equipo 12 L", "Equipo 12 V", ""),
         ("Equipo 13 L", "Equipo 13 V", ""),
         ("Equipo 14 L", "Equipo 14 V", ""),
-    ]
-if "pleno_partido" not in st.session_state:
-    st.session_state.pleno_partido = ("Local 15", "Visitante 15", "")
-if "red_sel" not in st.session_state:
-    st.session_state.red_sel = "13"
-if "partidos_cargados" not in st.session_state:
-    st.session_state.partidos_cargados = False
-if "barita_factores" not in st.session_state:
-    st.session_state.barita_factores = {
-        "quiniela":    [0.75, 0.70, 0.60, 0.55],
-        "bonoloto":    [0.75, 0.70, 0.60, 0.55],
-        "primitiva":   [0.75, 0.70, 0.60, 0.55],
-        "euromillones":[0.75, 0.70, 0.60, 0.55],
-    }
+    ],
+    "pleno_partido": ("Local 15", "Visitante 15", ""),
+}
+for k, v in defaults.items():
+    if k not in st.session_state:
+        st.session_state[k] = v
 
 
 # ═══════════════════════════════════════════════
-# AUTO-CARGA DE PARTIDOS DESDE LA API
+# AUTO-CARGA (solo 1 vez por sesion)
 # ═══════════════════════════════════════════════
-if not st.session_state.partidos_cargados:
+if not st.session_state.partidos_cargados and not st.session_state.auto_load_intentado:
+    st.session_state.auto_load_intentado = True
     try:
-        with st.spinner("Cargando proxima jornada..."):
-            datos = obtener_jornada("next")
+        datos = obtener_jornada("next")
+        partidos = []
+        if datos and "error" not in datos:
+            partidos, _, _ = extraer_partidos(datos)
+        if not partidos or len(partidos) < 14:
+            datos = obtener_jornada("latest")
             if datos and "error" not in datos:
                 partidos, _, _ = extraer_partidos(datos)
-                if not partidos or len(partidos) < 14:
-                    # Probar con "latest" si "next" no da nada
-                    datos = obtener_jornada("latest")
-                    if datos and "error" not in datos:
-                        partidos, _, _ = extraer_partidos(datos)
-                if partidos and len(partidos) >= 14:
-                    st.session_state.partidos_jornada = partidos[:14]
-                    st.session_state.partidos_cargados = True
+        if partidos and len(partidos) >= 14:
+            st.session_state.partidos_jornada = partidos[:14]
+            st.session_state.partidos_cargados = True
     except Exception:
         pass
 
@@ -462,12 +393,10 @@ with st.sidebar:
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:30px;font-weight:800;letter-spacing:-1px;"
-        "color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.6);"
-        "margin-bottom:0;'>QUINILOTO</h1>"
+        "color:#FFD700;margin-bottom:0;'>QUINILOTO</h1>"
         "<h2 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:22px;font-weight:700;letter-spacing:10px;"
-        "color:#FFD700;text-shadow:0 0 15px rgba(255,215,0,0.5);"
-        "margin-top:0;margin-bottom:25px;'>MAGIC</h2>",
+        "color:#FFD700;margin-top:0;margin-bottom:25px;'>MAGIC</h2>",
         unsafe_allow_html=True,
     )
     st.markdown("---")
@@ -475,9 +404,9 @@ with st.sidebar:
         "Seccion",
         [
             "Inicio",
+            "Quiniela",
             "Jornada actual",
             "Jornada siguiente",
-            "Quiniela",
             "Bonoloto",
             "Primitiva",
             "Euromillones",
@@ -487,11 +416,11 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.markdown("---")
-    if st.button("Recargar partidos desde API", use_container_width=True):
+    if st.button("Recargar partidos", use_container_width=True):
+        st.session_state.auto_load_intentado = False
         st.session_state.partidos_cargados = False
         st.cache_data.clear()
         st.rerun()
-    st.caption("Precios: Quiniela " + str(PRECIO_QUINIELA) + " EUR")
     if st.button("Cerrar sesion", use_container_width=True):
         st.session_state.autenticado = False
         st.rerun()
@@ -504,8 +433,7 @@ if seccion == "Inicio":
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:48px;font-weight:800;letter-spacing:-2px;"
-        "color:#FFD700;text-shadow:0 0 40px rgba(255,215,0,0.6);"
-        "margin-bottom:0;'>QUINILOTO MAGIC</h1>"
+        "color:#FFD700;margin-bottom:0;'>QUINILOTO MAGIC</h1>"
         "<p style='text-align:center;color:#a0a0b8;font-size:15px;"
         "margin-top:4px;'>Plataforma inteligente para quinielas y loterias</p>",
         unsafe_allow_html=True,
@@ -519,118 +447,22 @@ if seccion == "Inicio":
 
 
 # ═══════════════════════════════════════════════
-# JORNADA ACTUAL
-# ═══════════════════════════════════════════════
-elif seccion == "Jornada actual":
-    st.title("Jornada actual")
-    st.caption("Partidos con resultados oficiales desde LoteriaAPI.")
-
-    if st.button("Refrescar datos", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
-
-    with st.spinner("Consultando jornada actual..."):
-        datos = obtener_jornada("latest")
-
-    if datos and "error" not in datos:
-        partidos, jornada_num, fecha = extraer_partidos(datos)
-
-        c1, c2 = st.columns(2)
-        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
-        c2.metric("Fecha", str(fecha) if fecha else "-")
-
-        if partidos:
-            st.divider()
-            st.subheader("Partidos")
-            for i, (loc, vis, sig) in enumerate(partidos[:14]):
-                cols = st.columns([0.5, 4, 1, 4])
-                cols[0].markdown("**" + str(i+1) + "**")
-                cols[1].markdown(str(loc))
-                cols[2].markdown("**" + str(sig) + "**" if sig else "-")
-                cols[3].markdown(str(vis))
-
-            st.divider()
-            if st.button("Cargar en Quiniela", use_container_width=True, type="primary"):
-                st.session_state.partidos_jornada = partidos[:14]
-                st.session_state.signos = ["1"] * 14
-                st.session_state.apuestas_reducidas = None
-                st.session_state.baritas = []
-                st.session_state.partidos_cargados = True
-                st.success("Cargados " + str(len(partidos)) + " partidos. Ve a Quiniela.")
-        else:
-            st.warning("No se han podido extraer partidos.")
-            with st.expander("Ver respuesta cruda"):
-                st.json(datos)
-    else:
-        st.error("Error API: " + str(datos.get("error", "desconocido")))
-        st.info("Verifica API_KEY_LOTERIAS en Secrets.")
-
-
-# ═══════════════════════════════════════════════
-# JORNADA SIGUIENTE
-# ═══════════════════════════════════════════════
-elif seccion == "Jornada siguiente":
-    st.title("Jornada siguiente")
-    st.caption("Partidos programados para la proxima jornada.")
-
-    if st.button("Refrescar datos", use_container_width=True, key="ref_next"):
-        st.cache_data.clear()
-        st.rerun()
-
-    with st.spinner("Consultando proxima jornada..."):
-        datos = obtener_jornada("next")
-
-    if datos and "error" not in datos:
-        partidos, jornada_num, fecha = extraer_partidos(datos)
-
-        c1, c2 = st.columns(2)
-        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
-        c2.metric("Fecha", str(fecha) if fecha else "-")
-
-        if partidos:
-            st.divider()
-            st.subheader("Partidos")
-            for i, (loc, vis, _) in enumerate(partidos[:14]):
-                cols = st.columns([0.5, 5, 5])
-                cols[0].markdown("**" + str(i+1) + "**")
-                cols[1].markdown(str(loc))
-                cols[2].markdown(str(vis))
-
-            st.divider()
-            if st.button("Cargar en Quiniela", use_container_width=True, type="primary", key="load_next"):
-                st.session_state.partidos_jornada = partidos[:14]
-                st.session_state.signos = ["1"] * 14
-                st.session_state.apuestas_reducidas = None
-                st.session_state.baritas = []
-                st.session_state.partidos_cargados = True
-                st.success("Cargados " + str(len(partidos)) + " partidos.")
-        else:
-            st.warning("No se han podido extraer partidos.")
-            with st.expander("Ver respuesta cruda"):
-                st.json(datos)
-    else:
-        st.error("Error API: " + str(datos.get("error", "desconocido")))
-
-
-# ═══════════════════════════════════════════════
-# QUINIELA
+# QUINIELA (optimizada)
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
     st.title("Calculo de reducciones para la Quiniela")
-    st.caption("Introduce los partidos, marca dobles/triples, elige reduccion y genera las apuestas.")
+    st.caption("Marca dobles/triples, elige reduccion y genera las apuestas.")
 
-    # Aviso de donde vienen los partidos
     if st.session_state.partidos_cargados:
-        st.success("Partidos cargados desde la API de SELAE (jornada actual/siguiente).")
+        st.success("Partidos cargados desde la API.")
     else:
-        st.info("Partidos de ejemplo. Editalos a mano o ve a Jornada actual/siguiente y pulsa Cargar.")
+        st.info("Partidos de ejemplo. Editalos a mano.")
 
-    # ── 1. CONFIGURAR PARTIDOS ──
+    # ── 1. PARTIDOS ──
     st.subheader("1. Configura los partidos")
 
     for i in range(14):
         local_actual, visit_actual, resultado = st.session_state.partidos_jornada[i]
-
         cols = st.columns([0.5, 2.5, 2.5, 1, 1, 1])
         cols[0].markdown("<div class='num-partido'>" + str(i+1) + "</div>", unsafe_allow_html=True)
 
@@ -658,6 +490,8 @@ elif seccion == "Quiniela":
                         st.session_state.signos[i] = nuevo
                     else:
                         st.session_state.signos[i] = ordenar_signos(actual + signo)
+                    # Limpiar apuestas al cambiar signos
+                    st.session_state.apuestas_reducidas = None
                     st.rerun()
 
     # ── 2. PLENO ──
@@ -693,16 +527,16 @@ elif seccion == "Quiniela":
                 st.session_state.pleno_visit = signo
                 st.rerun()
 
-    # ── 3. RESUMEN ──
+    # ── 3. RESUMEN (calculo RAPIDO sin generar lista) ──
     st.markdown("---")
     dobles, triples = contar_dobles_triples(st.session_state.signos)
-    apuestas_directas = 2 ** dobles * 3 ** triples
+    apuestas_directas = (2 ** dobles) * (3 ** triples)
 
     r1, r2, r3, r4 = st.columns(4)
     r1.metric("Triples", str(triples))
     r2.metric("Dobles", str(dobles))
-    r3.metric("Apuestas directas", str(apuestas_directas))
-    r4.metric("Coste directo", str(round(apuestas_directas * PRECIO_QUINIELA, 2)) + " EUR")
+    r3.metric("Apuestas directas", f"{apuestas_directas:,}")
+    r4.metric("Coste directo", f"{round(apuestas_directas * PRECIO_QUINIELA, 2):,.2f} EUR")
 
     # ── 4. REDUCCION ──
     st.markdown("---")
@@ -738,13 +572,19 @@ elif seccion == "Quiniela":
     with b2:
         if st.button("Generar reduccion", type="primary", use_container_width=True):
             if apuestas_directas == 1:
-                st.warning("Marca al menos un doble o un triple para que la reduccion tenga sentido.")
-            elif apuestas_directas > 500000:
-                st.error("Demasiadas combinaciones directas (" + str(apuestas_directas) + "). Reduce el numero de triples.")
+                st.warning("Marca al menos un doble o triple.")
+            elif apuestas_directas > MAX_COMBINACIONES_DIRECTAS:
+                st.error(
+                    "Demasiadas combinaciones directas (" + f"{apuestas_directas:,}" +
+                    "). Maximo " + f"{MAX_COMBINACIONES_DIRECTAS:,}" +
+                    ". Quita algun triple."
+                )
             else:
                 with st.spinner("Calculando reduccion al " + st.session_state.red_sel + "..."):
                     combinaciones = generar_combinaciones(st.session_state.signos)
                     apuestas = reducir_por_cobertura(combinaciones, int(st.session_state.red_sel))
+                    if len(apuestas) > MAX_APUESTAS_FINALES:
+                        apuestas = apuestas[:MAX_APUESTAS_FINALES]
                     st.session_state.apuestas_reducidas = apuestas
                     st.session_state.baritas = []
                 st.rerun()
@@ -765,13 +605,13 @@ elif seccion == "Quiniela":
         coste = round(n_ap * PRECIO_QUINIELA, 2)
 
         st.markdown(
-            "<div class='titulo-columnas'>" + str(n_ap) + " COLUMNAS QUE FORMAN LA REDUCCION SELECCIONADA</div>",
+            "<div class='titulo-columnas'>" + str(n_ap) + " COLUMNAS QUE FORMAN LA REDUCCION</div>",
             unsafe_allow_html=True,
         )
 
         c1, c2 = st.columns(2)
-        c1.metric("Apuestas finales", str(n_ap))
-        c2.metric("Coste final", str(coste) + " EUR")
+        c1.metric("Apuestas finales", f"{n_ap:,}")
+        c2.metric("Coste final", f"{coste:,.2f} EUR")
 
         st.markdown("<div class='titulo-seccion-dorado'>BARITA MAGICA</div>", unsafe_allow_html=True)
         cols_b = st.columns(4)
@@ -790,15 +630,25 @@ elif seccion == "Quiniela":
                 st.session_state.baritas.pop()
                 st.rerun()
 
-        # ── BOLETOS ──
+        # ── BOLETOS (maximo 200 para no ralentizar) ──
         st.markdown("---")
+
+        if n_ap > MAX_BOLETOS_VISUALES:
+            st.info("Hay " + f"{n_ap:,}" + " apuestas. Vista previa limitada a las primeras " +
+                    str(MAX_BOLETOS_VISUALES) + ".")
+            apuestas_mostrar = apuestas_actuales[:MAX_BOLETOS_VISUALES]
+            n_mostrar = MAX_BOLETOS_VISUALES
+        else:
+            apuestas_mostrar = apuestas_actuales
+            n_mostrar = n_ap
+
         BOLETOS_POR_PESTANA = 8
-        numero_pestanas = (n_ap + BOLETOS_POR_PESTANA - 1) // BOLETOS_POR_PESTANA
+        numero_pestanas = (n_mostrar + BOLETOS_POR_PESTANA - 1) // BOLETOS_POR_PESTANA
 
         nombres = []
         for i in range(numero_pestanas):
             inicio = i * BOLETOS_POR_PESTANA + 1
-            fin = min((i + 1) * BOLETOS_POR_PESTANA, n_ap)
+            fin = min((i + 1) * BOLETOS_POR_PESTANA, n_mostrar)
             nombres.append("Boleto " + str(inicio) + "-" + str(fin))
 
         pestanas = st.tabs(nombres)
@@ -806,7 +656,7 @@ elif seccion == "Quiniela":
         for i, pestana in enumerate(pestanas):
             with pestana:
                 inicio = i * BOLETOS_POR_PESTANA
-                fin = min(inicio + BOLETOS_POR_PESTANA, n_ap)
+                fin = min(inicio + BOLETOS_POR_PESTANA, n_mostrar)
                 num_bol = fin - inicio
 
                 cab = st.columns([0.5, 3, 1] + [0.6] * num_bol)
@@ -826,7 +676,7 @@ elif seccion == "Quiniela":
                     for j in range(num_bol):
                         idx = inicio + j
                         if idx < fin:
-                            signo = apuestas_actuales[idx][p]
+                            signo = apuestas_mostrar[idx][p]
                             clase = "signo-1" if signo == "1" else ("signo-X" if signo == "X" else "signo-2")
                             fila[3 + j].markdown(
                                 "<div style='text-align:center;padding-top:4px;'>"
@@ -835,18 +685,94 @@ elif seccion == "Quiniela":
                                 unsafe_allow_html=True,
                             )
 
-        # ── DESCARGAR ──
+        # ── DESCARGAR (todas las apuestas, no solo las 200) ──
         st.markdown("---")
         st.markdown("<div class='titulo-seccion-dorado'>DESCARGAR</div>", unsafe_allow_html=True)
         contenido = a_txt_quiniela(apuestas_actuales, st.session_state.pleno_local, st.session_state.pleno_visit)
         st.download_button(
-            "Descargar txt",
+            "Descargar txt (" + f"{n_ap:,}" + " apuestas)",
             data=contenido.encode("utf-8"),
             file_name="quiniela_reducida.txt",
             mime="text/plain",
             use_container_width=True,
             type="primary",
         )
+
+
+# ═══════════════════════════════════════════════
+# JORNADA ACTUAL
+# ═══════════════════════════════════════════════
+elif seccion == "Jornada actual":
+    st.title("Jornada actual")
+
+    if st.button("Refrescar", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
+
+    datos = obtener_jornada("latest")
+
+    if datos and "error" not in datos:
+        partidos, jornada_num, fecha = extraer_partidos(datos)
+        c1, c2 = st.columns(2)
+        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
+        c2.metric("Fecha", str(fecha) if fecha else "-")
+
+        if partidos:
+            st.divider()
+            for i, (loc, vis, sig) in enumerate(partidos[:14]):
+                st.write("#" + str(i+1) + " - " + str(loc) + " vs " + str(vis) + " -> " + str(sig))
+
+            if st.button("Cargar en Quiniela", use_container_width=True, type="primary"):
+                st.session_state.partidos_jornada = partidos[:14]
+                st.session_state.signos = ["1"] * 14
+                st.session_state.apuestas_reducidas = None
+                st.session_state.baritas = []
+                st.session_state.partidos_cargados = True
+                st.success("Partidos cargados.")
+        else:
+            st.warning("No se extrajeron partidos.")
+            with st.expander("Ver respuesta cruda"):
+                st.json(datos)
+    else:
+        st.error("Error: " + str(datos.get("error", "desconocido")))
+
+
+# ═══════════════════════════════════════════════
+# JORNADA SIGUIENTE
+# ═══════════════════════════════════════════════
+elif seccion == "Jornada siguiente":
+    st.title("Jornada siguiente")
+
+    if st.button("Refrescar", use_container_width=True, key="ref_next"):
+        st.cache_data.clear()
+        st.rerun()
+
+    datos = obtener_jornada("next")
+
+    if datos and "error" not in datos:
+        partidos, jornada_num, fecha = extraer_partidos(datos)
+        c1, c2 = st.columns(2)
+        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
+        c2.metric("Fecha", str(fecha) if fecha else "-")
+
+        if partidos:
+            st.divider()
+            for i, (loc, vis, _) in enumerate(partidos[:14]):
+                st.write("#" + str(i+1) + " - " + str(loc) + " vs " + str(vis))
+
+            if st.button("Cargar en Quiniela", use_container_width=True, type="primary", key="load_next"):
+                st.session_state.partidos_jornada = partidos[:14]
+                st.session_state.signos = ["1"] * 14
+                st.session_state.apuestas_reducidas = None
+                st.session_state.baritas = []
+                st.session_state.partidos_cargados = True
+                st.success("Partidos cargados.")
+        else:
+            st.warning("No se extrajeron partidos.")
+            with st.expander("Ver respuesta cruda"):
+                st.json(datos)
+    else:
+        st.error("Error: " + str(datos.get("error", "desconocido")))
 
 
 # ═══════════════════════════════════════════════
@@ -860,7 +786,7 @@ elif seccion == "Bonoloto":
     if "bono_combs" not in st.session_state: st.session_state.bono_combs = None
     if "bono_baritas" not in st.session_state: st.session_state.bono_baritas = []
 
-    st.subheader("1. Selecciona numeros (1-49)")
+    st.subheader("1. Numeros (1-49)")
     cols = st.columns(10)
     for n in range(1, 50):
         with cols[(n-1) % 10]:
@@ -869,13 +795,15 @@ elif seccion == "Bonoloto":
                          type="primary" if activo else "secondary"):
                 if activo: st.session_state.bono_nums.remove(n)
                 else: st.session_state.bono_nums.append(n)
+                st.session_state.bono_combs = None
                 st.rerun()
 
-    st.caption("Seleccionados: " + str(len(st.session_state.bono_nums)) + " -> " + str(sorted(st.session_state.bono_nums)))
+    st.caption("Seleccionados: " + str(len(st.session_state.bono_nums)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
         st.session_state.bono_nums = random.sample(range(1, 50), 6)
+        st.session_state.bono_combs = None
         st.rerun()
     if c2.button("Limpiar", use_container_width=True):
         st.session_state.bono_nums = []
@@ -913,8 +841,6 @@ elif seccion == "Bonoloto":
             c1, c2 = st.columns(2)
             c1.metric("Apuestas", str(n_act))
             c2.metric("Coste", str(coste_act) + " EUR")
-            if aviso:
-                st.warning("Minimo: " + str(MIN_BONOLOTO) + " apuestas")
 
             cols_b = st.columns(4)
             for idx, capa in enumerate(BARITA_DEFAULT):
@@ -948,7 +874,7 @@ elif seccion == "Primitiva":
     if "pri_combs" not in st.session_state: st.session_state.pri_combs = None
     if "pri_baritas" not in st.session_state: st.session_state.pri_baritas = []
 
-    st.subheader("1. Selecciona numeros (1-49)")
+    st.subheader("1. Numeros (1-49)")
     cols = st.columns(10)
     for n in range(1, 50):
         with cols[(n-1) % 10]:
@@ -957,13 +883,15 @@ elif seccion == "Primitiva":
                          type="primary" if activo else "secondary"):
                 if activo: st.session_state.pri_nums.remove(n)
                 else: st.session_state.pri_nums.append(n)
+                st.session_state.pri_combs = None
                 st.rerun()
 
-    st.caption("Seleccionados: " + str(len(st.session_state.pri_nums)) + " -> " + str(sorted(st.session_state.pri_nums)))
+    st.caption("Seleccionados: " + str(len(st.session_state.pri_nums)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
         st.session_state.pri_nums = random.sample(range(1, 50), 6)
+        st.session_state.pri_combs = None
         st.rerun()
     if c2.button("Limpiar", use_container_width=True):
         st.session_state.pri_nums = []
@@ -1042,6 +970,7 @@ elif seccion == "Euromillones":
                          type="primary" if activo else "secondary"):
                 if activo: st.session_state.eu_nums.remove(n)
                 else: st.session_state.eu_nums.append(n)
+                st.session_state.eu_combs = None
                 st.rerun()
 
     st.subheader("2. Estrellas (1-12)")
@@ -1053,15 +982,14 @@ elif seccion == "Euromillones":
                          type="primary" if activo else "secondary"):
                 if activo: st.session_state.eu_est.remove(n)
                 else: st.session_state.eu_est.append(n)
+                st.session_state.eu_combs = None
                 st.rerun()
-
-    st.caption("Numeros: " + str(sorted(st.session_state.eu_nums)))
-    st.caption("Estrellas: " + str(sorted(st.session_state.eu_est)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True, key="rand_eu"):
         st.session_state.eu_nums = random.sample(range(1, 51), 5)
         st.session_state.eu_est = random.sample(range(1, 13), 2)
+        st.session_state.eu_combs = None
         st.rerun()
     if c2.button("Limpiar", use_container_width=True, key="clear_eu"):
         st.session_state.eu_nums = []
@@ -1151,15 +1079,6 @@ elif seccion == "Configurar Barita":
                 st.session_state.barita_factores[juego][i] = pct / 100.0
         st.divider()
 
-    if st.button("Restaurar valores por defecto", use_container_width=True):
-        st.session_state.barita_factores = {
-            "quiniela":    [0.75, 0.70, 0.60, 0.55],
-            "bonoloto":    [0.75, 0.70, 0.60, 0.55],
-            "primitiva":   [0.75, 0.70, 0.60, 0.55],
-            "euromillones":[0.75, 0.70, 0.60, 0.55],
-        }
-        st.rerun()
-
 
 # ═══════════════════════════════════════════════
 # CUENTA
@@ -1167,11 +1086,6 @@ elif seccion == "Configurar Barita":
 elif seccion == "Cuenta":
     st.title("Cuenta")
     st.write("**Plan:** Free (demo)")
-    st.write("Precios oficiales:")
-    st.write("Quiniela: " + str(PRECIO_QUINIELA) + " EUR")
-    st.write("Bonoloto: " + str(PRECIO_BONOLOTO) + " EUR")
-    st.write("Primitiva: " + str(PRECIO_PRIMITIVA) + " EUR")
-    st.write("Euromillones: " + str(PRECIO_EUROMILLONES) + " EUR")
     if st.button("Cerrar sesion", use_container_width=True):
         st.session_state.autenticado = False
         st.rerun()
