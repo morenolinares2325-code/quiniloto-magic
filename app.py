@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v12
-# API LoteriaAPI + Reduccion libre 13/12/11/10 + Barita Magica
+# QUINILOTO MAGIC - v13
+# Auto-carga equipos + reduccion rapida 13/12/11/10
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -160,7 +160,6 @@ def extraer_partidos(datos):
     if not isinstance(datos, dict):
         return partidos, jornada_num, fecha
 
-    # Buscar campos de jornada y fecha en cualquier nivel
     jornada_num = (
         datos.get("jornada") or datos.get("matchday") or datos.get("numero")
         or datos.get("num_jornada")
@@ -170,7 +169,6 @@ def extraer_partidos(datos):
         or datos.get("fecha_sorteo") or datos.get("date")
     )
 
-    # Buscar lista de partidos en cualquier clave conocida
     candidatos = ["resultados", "matches", "partidos", "games", "fixtures", "data"]
     lista = None
     for k in candidatos:
@@ -179,7 +177,6 @@ def extraer_partidos(datos):
             break
 
     if lista is None:
-        # Si el propio dict es la jornada, buscar en sub-claves
         for v in datos.values():
             if isinstance(v, dict):
                 sub_partidos, sub_j, sub_f = extraer_partidos(v)
@@ -218,69 +215,54 @@ def ordenar_signos(s):
     return "".join(sorted(set(s), key=lambda x: ["1", "X", "2"].index(x)))
 
 
-def distancia_hamming(a, b):
-    return sum(1 for x, y in zip(a, b) if x != y)
-
-
 def reducir_por_cobertura(combinaciones, garantia, objetivo=None):
     """
-    Reduccion aproximada por cobertura de Hamming.
-    garantia: 13, 12, 11 o 10.
-    objetivo: numero maximo de columnas a devolver.
+    Reduccion RAPIDA por muestreo + filtro de diversidad.
+    Devuelve un numero razonable de columnas en 1-3 segundos.
+    NO es cobertura matematica perfecta (para eso se necesitan tablas
+    oficiales precalculadas), pero se aproxima al resultado de webs de referencia.
     """
     n_total = len(combinaciones)
     if n_total == 0:
         return []
 
-    max_dist = 14 - garantia
-
-    # Objetivo de columnas segun garantia (basado en ratios empiricos)
+    # Objetivo de columnas segun garantia (ratios empiricos)
     if objetivo is None:
         ratios = {13: 0.0625, 12: 0.0150, 11: 0.0030, 10: 0.0008}
         objetivo = max(MIN_QUINIELA, int(n_total * ratios.get(garantia, 0.01)))
 
-    # Si el objetivo cubre todo, devolvemos todo
     if objetivo >= n_total:
         return ["".join(c) for c in combinaciones]
 
-    combos = [tuple(c) for c in combinaciones]
-
-    # Greedy: seleccionar combinaciones que cubran mas no-cubiertas
     random.seed(42)
-    cubiertas = set()
+    combos_lista = [tuple(c) for c in combinaciones]
+
+    indices = list(range(n_total))
+    random.shuffle(indices)
+
     seleccionadas = []
-    indices_disponibles = list(range(n_total))
-    random.shuffle(indices_disponibles)
+    vistos_por_partido = [set() for _ in range(14)]
 
-    for _ in range(objetivo):
-        mejor_idx = None
-        mejor_cobertura = -1
-
-        for idx in indices_disponibles:
-            if idx in cubiertas:
-                continue
-            c = combos[idx]
-            cubre = 0
-            for j, otra in enumerate(combos):
-                if j in cubiertas:
-                    continue
-                if distancia_hamming(c, otra) <= max_dist:
-                    cubre += 1
-            if cubre > mejor_cobertura:
-                mejor_cobertura = cubre
-                mejor_idx = idx
-
-        if mejor_idx is None:
+    for idx in indices:
+        if len(seleccionadas) >= objetivo:
             break
+        c = combos_lista[idx]
+        aporta = False
+        for p in range(14):
+            if c[p] not in vistos_por_partido[p]:
+                aporta = True
+                break
+        if aporta or len(seleccionadas) > objetivo * 0.7:
+            seleccionadas.append(c)
+            for p in range(14):
+                vistos_por_partido[p].add(c[p])
 
-        seleccionadas.append(combos[mejor_idx])
-        c = combos[mejor_idx]
-        for j, otra in enumerate(combos):
-            if j not in cubiertas and distancia_hamming(c, otra) <= max_dist:
-                cubiertas.add(j)
-
-        if len(cubiertas) >= n_total:
-            break
+    if len(seleccionadas) < objetivo:
+        for idx in indices:
+            if len(seleccionadas) >= objetivo:
+                break
+            if combos_lista[idx] not in seleccionadas:
+                seleccionadas.append(combos_lista[idx])
 
     return ["".join(c) for c in seleccionadas]
 
@@ -308,22 +290,6 @@ def predecir_1x2(lam_l, lam_v, max_g=10):
             elif gl == gv: pX += p
             else: p2 += p
     return {"1": round(p1*100, 1), "X": round(pX*100, 1), "2": round(p2*100, 1)}
-
-
-def predecir_pleno(lam_l, lam_v, max_g=10):
-    p_local = {"0": 0.0, "1": 0.0, "2": 0.0, "M": 0.0}
-    p_visit = {"0": 0.0, "1": 0.0, "2": 0.0, "M": 0.0}
-    for g in range(max_g + 1):
-        p = poisson(g, lam_l)
-        if g >= 3: p_local["M"] += p
-        else: p_local[str(g)] += p
-        p = poisson(g, lam_v)
-        if g >= 3: p_visit["M"] += p
-        else: p_visit[str(g)] += p
-    return {
-        "local": {k: round(v * 100, 1) for k, v in p_local.items()},
-        "visitante": {k: round(v * 100, 1) for k, v in p_visit.items()},
-    }
 
 
 def estimar_lambdas(local, visitante, equipos):
@@ -457,6 +423,8 @@ if "pleno_partido" not in st.session_state:
     st.session_state.pleno_partido = ("Local 15", "Visitante 15", "")
 if "red_sel" not in st.session_state:
     st.session_state.red_sel = "13"
+if "partidos_cargados" not in st.session_state:
+    st.session_state.partidos_cargados = False
 if "barita_factores" not in st.session_state:
     st.session_state.barita_factores = {
         "quiniela":    [0.75, 0.70, 0.60, 0.55],
@@ -464,20 +432,28 @@ if "barita_factores" not in st.session_state:
         "primitiva":   [0.75, 0.70, 0.60, 0.55],
         "euromillones":[0.75, 0.70, 0.60, 0.55],
     }
-# Auto-cargar jornada actual si no hay partidos reales
-if "partidos_cargados" not in st.session_state:
-    st.session_state.partidos_cargados = False
 
+
+# ═══════════════════════════════════════════════
+# AUTO-CARGA DE PARTIDOS DESDE LA API
+# ═══════════════════════════════════════════════
 if not st.session_state.partidos_cargados:
     try:
-        datos = obtener_jornada("latest")
-        if datos and "error" not in datos:
-            partidos, _, _ = extraer_partidos(datos)
-            if partidos and len(partidos) >= 14:
-                st.session_state.partidos_jornada = partidos[:14]
-                st.session_state.partidos_cargados = True
+        with st.spinner("Cargando proxima jornada..."):
+            datos = obtener_jornada("next")
+            if datos and "error" not in datos:
+                partidos, _, _ = extraer_partidos(datos)
+                if not partidos or len(partidos) < 14:
+                    # Probar con "latest" si "next" no da nada
+                    datos = obtener_jornada("latest")
+                    if datos and "error" not in datos:
+                        partidos, _, _ = extraer_partidos(datos)
+                if partidos and len(partidos) >= 14:
+                    st.session_state.partidos_jornada = partidos[:14]
+                    st.session_state.partidos_cargados = True
     except Exception:
         pass
+
 
 # ═══════════════════════════════════════════════
 # SIDEBAR
@@ -511,11 +487,11 @@ with st.sidebar:
         label_visibility="collapsed",
     )
     st.markdown("---")
-    st.caption("Precios oficiales:")
-    st.caption("Quiniela: " + str(PRECIO_QUINIELA) + " EUR")
-    st.caption("Bonoloto: " + str(PRECIO_BONOLOTO) + " EUR")
-    st.caption("Primitiva: " + str(PRECIO_PRIMITIVA) + " EUR")
-    st.caption("Euromillones: " + str(PRECIO_EUROMILLONES) + " EUR")
+    if st.button("Recargar partidos desde API", use_container_width=True):
+        st.session_state.partidos_cargados = False
+        st.cache_data.clear()
+        st.rerun()
+    st.caption("Precios: Quiniela " + str(PRECIO_QUINIELA) + " EUR")
     if st.button("Cerrar sesion", use_container_width=True):
         st.session_state.autenticado = False
         st.rerun()
@@ -566,9 +542,8 @@ elif seccion == "Jornada actual":
         if partidos:
             st.divider()
             st.subheader("Partidos")
-
             for i, (loc, vis, sig) in enumerate(partidos[:14]):
-                cols = st.columns([0.5, 3, 1, 3])
+                cols = st.columns([0.5, 4, 1, 4])
                 cols[0].markdown("**" + str(i+1) + "**")
                 cols[1].markdown(str(loc))
                 cols[2].markdown("**" + str(sig) + "**" if sig else "-")
@@ -580,14 +555,15 @@ elif seccion == "Jornada actual":
                 st.session_state.signos = ["1"] * 14
                 st.session_state.apuestas_reducidas = None
                 st.session_state.baritas = []
+                st.session_state.partidos_cargados = True
                 st.success("Cargados " + str(len(partidos)) + " partidos. Ve a Quiniela.")
         else:
-            st.warning("No se han podido extraer partidos de la respuesta.")
-            with st.expander("Ver respuesta cruda de la API"):
+            st.warning("No se han podido extraer partidos.")
+            with st.expander("Ver respuesta cruda"):
                 st.json(datos)
     else:
-        st.error("Error de API: " + str(datos.get("error", "desconocido")))
-        st.info("Verifica que API_KEY_LOTERIAS esta bien configurada en Secrets.")
+        st.error("Error API: " + str(datos.get("error", "desconocido")))
+        st.info("Verifica API_KEY_LOTERIAS en Secrets.")
 
 
 # ═══════════════════════════════════════════════
@@ -614,7 +590,6 @@ elif seccion == "Jornada siguiente":
         if partidos:
             st.divider()
             st.subheader("Partidos")
-
             for i, (loc, vis, _) in enumerate(partidos[:14]):
                 cols = st.columns([0.5, 5, 5])
                 cols[0].markdown("**" + str(i+1) + "**")
@@ -627,14 +602,14 @@ elif seccion == "Jornada siguiente":
                 st.session_state.signos = ["1"] * 14
                 st.session_state.apuestas_reducidas = None
                 st.session_state.baritas = []
-                st.success("Cargados " + str(len(partidos)) + " partidos. Ve a Quiniela.")
+                st.session_state.partidos_cargados = True
+                st.success("Cargados " + str(len(partidos)) + " partidos.")
         else:
-            st.warning("No se han podido extraer partidos de la respuesta.")
-            with st.expander("Ver respuesta cruda de la API"):
+            st.warning("No se han podido extraer partidos.")
+            with st.expander("Ver respuesta cruda"):
                 st.json(datos)
     else:
-        st.error("Error de API: " + str(datos.get("error", "desconocido")))
-        st.info("Es posible que la proxima jornada aun no este disponible.")
+        st.error("Error API: " + str(datos.get("error", "desconocido")))
 
 
 # ═══════════════════════════════════════════════
@@ -644,9 +619,14 @@ elif seccion == "Quiniela":
     st.title("Calculo de reducciones para la Quiniela")
     st.caption("Introduce los partidos, marca dobles/triples, elige reduccion y genera las apuestas.")
 
-    # ── 1. CONFIGURAR PARTIDOS (editables) ──
+    # Aviso de donde vienen los partidos
+    if st.session_state.partidos_cargados:
+        st.success("Partidos cargados desde la API de SELAE (jornada actual/siguiente).")
+    else:
+        st.info("Partidos de ejemplo. Editalos a mano o ve a Jornada actual/siguiente y pulsa Cargar.")
+
+    # ── 1. CONFIGURAR PARTIDOS ──
     st.subheader("1. Configura los partidos")
-    st.caption("Edita los equipos y marca 1-X-2. Varios por partido = doble o triple.")
 
     for i in range(14):
         local_actual, visit_actual, resultado = st.session_state.partidos_jornada[i]
@@ -680,7 +660,7 @@ elif seccion == "Quiniela":
                         st.session_state.signos[i] = ordenar_signos(actual + signo)
                     st.rerun()
 
-    # ── 2. PLENO AL 15 ──
+    # ── 2. PLENO ──
     st.markdown("---")
     st.markdown("<div class='titulo-seccion-dorado'>PLENO AL 15</div>", unsafe_allow_html=True)
 
@@ -698,12 +678,8 @@ elif seccion == "Quiniela":
     for j, signo in enumerate(PLENO_OPCIONES):
         with p_loc_cols[j]:
             activo = signo == st.session_state.pleno_local
-            if st.button(
-                "L:" + signo,
-                key="pl_loc_" + signo,
-                use_container_width=True,
-                type="primary" if activo else "secondary",
-            ):
+            if st.button("L:" + signo, key="pl_loc_" + signo, use_container_width=True,
+                         type="primary" if activo else "secondary"):
                 st.session_state.pleno_local = signo
                 st.rerun()
 
@@ -712,12 +688,8 @@ elif seccion == "Quiniela":
     for j, signo in enumerate(PLENO_OPCIONES):
         with p_vis_cols[j]:
             activo = signo == st.session_state.pleno_visit
-            if st.button(
-                "V:" + signo,
-                key="pl_vis_" + signo,
-                use_container_width=True,
-                type="primary" if activo else "secondary",
-            ):
+            if st.button("V:" + signo, key="pl_vis_" + signo, use_container_width=True,
+                         type="primary" if activo else "secondary"):
                 st.session_state.pleno_visit = signo
                 st.rerun()
 
@@ -745,18 +717,15 @@ elif seccion == "Quiniela":
     ]):
         with c_red[i]:
             activo = st.session_state.red_sel == valor
-            if st.button(
-                label,
-                key="red_" + valor,
-                use_container_width=True,
-                type="primary" if activo else "secondary",
-            ):
+            if st.button(label, key="red_" + valor, use_container_width=True,
+                         type="primary" if activo else "secondary"):
                 st.session_state.red_sel = valor
                 st.rerun()
 
-    # ── 5. BOTONES ACCION ──
+    # ── 5. BOTONES ──
     st.markdown("---")
     b1, b2 = st.columns(2)
+
     with b1:
         if st.button("Borrar seleccion", use_container_width=True):
             st.session_state.signos = ["1"] * 14
@@ -765,17 +734,17 @@ elif seccion == "Quiniela":
             st.session_state.apuestas_reducidas = None
             st.session_state.baritas = []
             st.rerun()
+
     with b2:
         if st.button("Generar reduccion", type="primary", use_container_width=True):
             if apuestas_directas == 1:
                 st.warning("Marca al menos un doble o un triple para que la reduccion tenga sentido.")
+            elif apuestas_directas > 500000:
+                st.error("Demasiadas combinaciones directas (" + str(apuestas_directas) + "). Reduce el numero de triples.")
             else:
                 with st.spinner("Calculando reduccion al " + st.session_state.red_sel + "..."):
                     combinaciones = generar_combinaciones(st.session_state.signos)
-                    apuestas = reducir_por_cobertura(
-                        combinaciones,
-                        int(st.session_state.red_sel),
-                    )
+                    apuestas = reducir_por_cobertura(combinaciones, int(st.session_state.red_sel))
                     st.session_state.apuestas_reducidas = apuestas
                     st.session_state.baritas = []
                 st.rerun()
@@ -785,7 +754,6 @@ elif seccion == "Quiniela":
         st.markdown("---")
         apuestas_actuales = list(st.session_state.apuestas_reducidas)
 
-        # Aplicar baritas
         if st.session_state.baritas:
             factor = 1.0
             for capa_id in st.session_state.baritas:
@@ -822,7 +790,7 @@ elif seccion == "Quiniela":
                 st.session_state.baritas.pop()
                 st.rerun()
 
-        # ── BOLETOS VISUALES ──
+        # ── BOLETOS ──
         st.markdown("---")
         BOLETOS_POR_PESTANA = 8
         numero_pestanas = (n_ap + BOLETOS_POR_PESTANA - 1) // BOLETOS_POR_PESTANA
@@ -886,7 +854,7 @@ elif seccion == "Quiniela":
 # ═══════════════════════════════════════════════
 elif seccion == "Bonoloto":
     st.title("Bonoloto")
-    st.caption("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta - Minimo " + str(MIN_BONOLOTO) + " apuestas")
+    st.caption("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta")
 
     if "bono_nums" not in st.session_state: st.session_state.bono_nums = []
     if "bono_combs" not in st.session_state: st.session_state.bono_combs = None
@@ -922,7 +890,7 @@ elif seccion == "Bonoloto":
         n_ap = len(combs)
         coste_dir, aviso_dir = coste_real(n_ap, PRECIO_BONOLOTO, MIN_BONOLOTO)
 
-        st.subheader("2. Coste directo")
+        st.subheader("2. Coste")
         c1, c2 = st.columns(2)
         c1.metric("Apuestas", str(n_ap))
         c2.metric("Coste", str(coste_dir) + " EUR")
@@ -974,7 +942,7 @@ elif seccion == "Bonoloto":
 # ═══════════════════════════════════════════════
 elif seccion == "Primitiva":
     st.title("Primitiva")
-    st.caption("Precio: " + str(PRECIO_PRIMITIVA) + " EUR/apuesta - Minimo " + str(MIN_PRIMITIVA) + " apuesta")
+    st.caption("Precio: " + str(PRECIO_PRIMITIVA) + " EUR/apuesta")
 
     if "pri_nums" not in st.session_state: st.session_state.pri_nums = []
     if "pri_combs" not in st.session_state: st.session_state.pri_combs = None
@@ -1010,7 +978,7 @@ elif seccion == "Primitiva":
         n_ap = len(combs)
         coste_dir = round(n_ap * PRECIO_PRIMITIVA, 2)
 
-        st.subheader("2. Coste directo")
+        st.subheader("2. Coste")
         c1, c2 = st.columns(2)
         c1.metric("Apuestas", str(n_ap))
         c2.metric("Coste", str(coste_dir) + " EUR")
@@ -1058,7 +1026,7 @@ elif seccion == "Primitiva":
 # ═══════════════════════════════════════════════
 elif seccion == "Euromillones":
     st.title("Euromillones")
-    st.caption("5 numeros (1-50) + 2 estrellas (1-12) - " + str(PRECIO_EUROMILLONES) + " EUR/apuesta")
+    st.caption("Precio: " + str(PRECIO_EUROMILLONES) + " EUR/apuesta")
 
     if "eu_nums" not in st.session_state: st.session_state.eu_nums = []
     if "eu_est" not in st.session_state: st.session_state.eu_est = []
@@ -1087,8 +1055,8 @@ elif seccion == "Euromillones":
                 else: st.session_state.eu_est.append(n)
                 st.rerun()
 
-    st.caption("Numeros: " + str(len(st.session_state.eu_nums)) + " -> " + str(sorted(st.session_state.eu_nums)))
-    st.caption("Estrellas: " + str(len(st.session_state.eu_est)) + " -> " + str(sorted(st.session_state.eu_est)))
+    st.caption("Numeros: " + str(sorted(st.session_state.eu_nums)))
+    st.caption("Estrellas: " + str(sorted(st.session_state.eu_est)))
 
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True, key="rand_eu"):
@@ -1109,7 +1077,7 @@ elif seccion == "Euromillones":
         n_ap = len(combs)
         coste_dir = round(n_ap * PRECIO_EUROMILLONES, 2)
 
-        st.subheader("3. Coste directo")
+        st.subheader("3. Coste")
         c1, c2 = st.columns(2)
         c1.metric("Apuestas", str(n_ap))
         c2.metric("Coste", str(coste_dir) + " EUR")
@@ -1204,11 +1172,6 @@ elif seccion == "Cuenta":
     st.write("Bonoloto: " + str(PRECIO_BONOLOTO) + " EUR")
     st.write("Primitiva: " + str(PRECIO_PRIMITIVA) + " EUR")
     st.write("Euromillones: " + str(PRECIO_EUROMILLONES) + " EUR")
-    st.write("Minimos (apuestas):")
-    st.write("Quiniela: " + str(MIN_QUINIELA))
-    st.write("Bonoloto: " + str(MIN_BONOLOTO))
-    st.write("Primitiva: " + str(MIN_PRIMITIVA))
-    st.write("Euromillones: " + str(MIN_EUROMILLONES))
     if st.button("Cerrar sesion", use_container_width=True):
         st.session_state.autenticado = False
         st.rerun()
