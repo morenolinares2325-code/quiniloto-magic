@@ -1,6 +1,6 @@
 # ══════════════════════════════════════════════════════════════
-# QUINILOTO MAGIC - v15
-# Barita Magica unica en todas las secciones
+# QUINILOTO MAGIC - v16
+# Calculo solo al pulsar Generar | Barita unica | 4 secciones
 # ══════════════════════════════════════════════════════════════
 
 import itertools
@@ -36,7 +36,7 @@ MAX_BOLETOS_VISUALES = 200
 PLENO_OPCIONES = ["0", "1", "2", "M"]
 
 # ─────────────────────────────────────────────────
-# CSS NEON
+# CSS
 # ─────────────────────────────────────────────────
 st.markdown("""
 <style>
@@ -83,60 +83,17 @@ header[data-testid="stHeader"] { display: none; }
     text-align: center; color: #FFD700; font-weight: 800; font-size: 22px;
     padding: 16px 0; letter-spacing: 1px;
 }
-
-/* ═══════════════════════════════════════ */
-/* BARITA MAGICA                           */
-/* ═══════════════════════════════════════ */
 .barita-magica-container {
-    text-align: center;
-    margin: 30px 0 20px 0;
-    padding: 24px;
+    text-align: center; margin: 30px 0 20px 0; padding: 24px;
     background: radial-gradient(circle, rgba(255,215,0,0.08) 0%, transparent 70%);
     border-radius: 20px;
 }
 .barita-magica-titulo {
-    color: #FFD700;
-    font-size: 32px;
-    font-weight: 900;
-    letter-spacing: 6px;
-    text-shadow: 0 0 20px rgba(255,215,0,0.9),
-                 0 0 40px rgba(255,215,0,0.5),
-                 0 0 60px rgba(255,165,0,0.3);
+    color: #FFD700; font-size: 32px; font-weight: 900; letter-spacing: 6px;
+    text-shadow: 0 0 20px rgba(255,215,0,0.9), 0 0 40px rgba(255,215,0,0.5);
     margin-bottom: 6px;
-    animation: titulo-glow 3s ease-in-out infinite;
 }
-@keyframes titulo-glow {
-    0%, 100% { text-shadow: 0 0 20px rgba(255,215,0,0.9), 0 0 40px rgba(255,215,0,0.5); }
-    50% { text-shadow: 0 0 30px rgba(255,215,0,1), 0 0 60px rgba(255,215,0,0.8), 0 0 90px rgba(255,165,0,0.5); }
-}
-.barita-magica-sub {
-    color: #a0a0b8;
-    font-size: 13px;
-    margin-bottom: 20px;
-}
-div[data-testid="stButton"] button[kind="primary"] p:contains("MAGIA"),
-div[data-testid="stButton"] button[kind="primary"]:has(p:contains("MAGIA")) {
-    background: linear-gradient(135deg, #FFD700 0%, #FFA500 50%, #FF8C00 100%) !important;
-    color: #0a0b15 !important;
-    border: none !important;
-    border-radius: 20px !important;
-    padding: 28px 70px !important;
-    font-size: 24px !important;
-    font-weight: 900 !important;
-    letter-spacing: 4px !important;
-    box-shadow: 0 0 40px rgba(255,215,0,0.8),
-                0 0 80px rgba(255,165,0,0.5),
-                0 12px 40px rgba(0,0,0,0.6) !important;
-    animation: barita-pulse 2s ease-in-out infinite;
-    transition: transform 0.2s ease !important;
-}
-div[data-testid="stButton"] button[kind="primary"]:hover {
-    transform: scale(1.03) !important;
-}
-@keyframes barita-pulse {
-    0%, 100% { box-shadow: 0 0 40px rgba(255,215,0,0.8), 0 0 80px rgba(255,165,0,0.5); }
-    50% { box-shadow: 0 0 60px rgba(255,215,0,1), 0 0 120px rgba(255,165,0,0.8); }
-}
+.barita-magica-sub { color: #a0a0b8; font-size: 13px; margin-bottom: 20px; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -173,40 +130,34 @@ def extraer_partidos(datos):
         return partidos, jornada_num, fecha
     jornada_num = datos.get("jornada") or datos.get("matchday") or datos.get("numero")
     fecha = datos.get("fecha") or datos.get("draw_date") or datos.get("fecha_sorteo")
-    candidatos = ["resultados", "matches", "partidos", "games", "fixtures", "data"]
-    lista = None
-    for k in candidatos:
+    for k in ["resultados", "matches", "partidos", "games", "fixtures", "data"]:
         if k in datos and isinstance(datos[k], list):
-            lista = datos[k]
-            break
-    if lista is None:
-        for v in datos.values():
-            if isinstance(v, dict):
-                sp, sj, sf = extraer_partidos(v)
-                if sp:
-                    return sp, sj, sf
-    if lista:
-        for r in lista:
-            if not isinstance(r, dict):
-                continue
-            local = r.get("local") or r.get("home") or r.get("equipo_local") or "-"
-            visit = r.get("visitante") or r.get("away") or r.get("equipo_visitante") or "-"
-            signo = r.get("signo") or r.get("result") or r.get("sign") or ""
-            partidos.append((local, visit, signo))
+            for r in datos[k]:
+                if not isinstance(r, dict):
+                    continue
+                local = r.get("local") or r.get("home") or r.get("equipo_local") or "-"
+                visit = r.get("visitante") or r.get("away") or r.get("equipo_visitante") or "-"
+                signo = r.get("signo") or r.get("result") or r.get("sign") or ""
+                partidos.append((local, visit, signo))
+            return partidos, jornada_num, fecha
+    for v in datos.values():
+        if isinstance(v, dict):
+            sp, sj, sf = extraer_partidos(v)
+            if sp:
+                return sp, sj, sf
     return partidos, jornada_num, fecha
 
 
 # ═══════════════════════════════════════════════
-# LOGICA QUINIELA
+# LOGICA
 # ═══════════════════════════════════════════════
 def generar_combinaciones(signos):
     return list(itertools.product(*[list(s) for s in signos]))
 
 
 def contar_dobles_triples(signos):
-    dobles = sum(1 for s in signos if len(s) == 2)
-    triples = sum(1 for s in signos if len(s) == 3)
-    return dobles, triples
+    return (sum(1 for s in signos if len(s) == 2),
+            sum(1 for s in signos if len(s) == 3))
 
 
 def ordenar_signos(s):
@@ -253,11 +204,7 @@ def a_txt_quiniela(apuestas, pleno_local, pleno_visit):
     return "\n".join(lineas)
 
 
-# ═══════════════════════════════════════════════
-# BARITA MAGICA UNIVERSAL
-# ═══════════════════════════════════════════════
 def aplicar_barita_quiniela(apuestas, contador):
-    """Reduce apuestas de quiniela. Cada pulsacion reduce mas."""
     if contador <= 0 or not apuestas:
         return list(apuestas)
     factores = [0.65, 0.45, 0.30, 0.20, 0.12, 0.07, 0.04, 0.02, 0.01, 0.005, 0.002]
@@ -270,7 +217,6 @@ def aplicar_barita_quiniela(apuestas, contador):
 
 
 def aplicar_barita_numeros(combinaciones, contador):
-    """Reduce combinaciones de numeros. Cada pulsacion reduce mas."""
     if contador <= 0 or not combinaciones:
         return list(combinaciones)
     factores = [0.65, 0.45, 0.30, 0.20, 0.12, 0.07, 0.04, 0.02, 0.01, 0.005, 0.002]
@@ -284,9 +230,6 @@ def aplicar_barita_numeros(combinaciones, contador):
     return sorted(combinaciones, key=score)[:n_nuevo]
 
 
-# ═══════════════════════════════════════════════
-# LOTERIAS
-# ═══════════════════════════════════════════════
 def generar_bonoloto(numeros):
     return list(itertools.combinations(sorted(numeros), 6)) if len(numeros) >= 6 else []
 
@@ -329,12 +272,10 @@ if not st.session_state.autenticado:
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:52px;font-weight:900;letter-spacing:-2px;"
-        "color:#FFD700;text-shadow:0 0 40px rgba(255,215,0,0.6);"
-        "margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
+        "color:#FFD700;margin-top:15vh;margin-bottom:0;'>QUINILOTO</h1>"
         "<h2 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:32px;font-weight:700;letter-spacing:14px;"
-        "color:#FFD700;text-shadow:0 0 20px rgba(255,215,0,0.5);"
-        "margin-top:0;'>MAGIC</h2>",
+        "color:#FFD700;margin-top:0;'>MAGIC</h2>",
         unsafe_allow_html=True,
     )
     st.markdown("<p style='text-align:center;color:#a0a0b8;font-size:14px;'>Acceso privado</p>", unsafe_allow_html=True)
@@ -361,16 +302,9 @@ defaults = {
     "red_sel": "13",
     "partidos_cargados": False,
     "auto_load_intentado": False,
-    "bono_nums": [],
-    "bono_combs": None,
-    "bono_barita": 0,
-    "pri_nums": [],
-    "pri_combs": None,
-    "pri_barita": 0,
-    "eu_nums": [],
-    "eu_est": [],
-    "eu_combs": None,
-    "eu_barita": 0,
+    "bono_nums": [], "bono_combs": None, "bono_barita": 0,
+    "pri_nums": [], "pri_combs": None, "pri_barita": 0,
+    "eu_nums": [], "eu_est": [], "eu_combs": None, "eu_barita": 0,
     "barita_quiniela": 0,
     "partidos_jornada": [
         ("Equipo 1 L", "Equipo 1 V", ""), ("Equipo 2 L", "Equipo 2 V", ""),
@@ -388,9 +322,7 @@ for k, v in defaults.items():
         st.session_state[k] = v
 
 
-# ═══════════════════════════════════════════════
-# AUTO-CARGA (solo 1 vez)
-# ═══════════════════════════════════════════════
+# AUTO-CARGA
 if not st.session_state.partidos_cargados and not st.session_state.auto_load_intentado:
     st.session_state.auto_load_intentado = True
     try:
@@ -425,16 +357,8 @@ with st.sidebar:
     st.markdown("---")
     seccion = st.radio(
         "Seccion",
-        [
-            "Inicio",
-            "Quiniela",
-            "Jornada actual",
-            "Jornada siguiente",
-            "Bonoloto",
-            "Primitiva",
-            "Euromillones",
-            "Cuenta",
-        ],
+        ["Inicio", "Quiniela", "Jornada actual", "Jornada siguiente",
+         "Bonoloto", "Primitiva", "Euromillones", "Cuenta"],
         label_visibility="collapsed",
     )
     st.markdown("---")
@@ -455,8 +379,7 @@ if seccion == "Inicio":
     st.markdown(
         "<h1 style='text-align:center;font-family:Inter,sans-serif;"
         "font-size:48px;font-weight:900;letter-spacing:-2px;"
-        "color:#FFD700;text-shadow:0 0 40px rgba(255,215,0,0.6);"
-        "margin-bottom:0;'>QUINILOTO MAGIC</h1>"
+        "color:#FFD700;margin-bottom:0;'>QUINILOTO MAGIC</h1>"
         "<p style='text-align:center;color:#a0a0b8;font-size:15px;"
         "margin-top:4px;'>Plataforma inteligente para quinielas y loterias</p>",
         unsafe_allow_html=True,
@@ -470,18 +393,16 @@ if seccion == "Inicio":
 
 
 # ═══════════════════════════════════════════════
-# QUINIELA
+# QUINIELA (sin calculos hasta Generar)
 # ═══════════════════════════════════════════════
 elif seccion == "Quiniela":
     st.title("Quiniela")
-    st.caption("Marca dobles/triples, elige reduccion y genera las apuestas.")
+    st.caption("Marca dobles/triples, elige reduccion y pulsa Generar.")
 
     if st.session_state.partidos_cargados:
         st.success("Partidos cargados desde la API.")
-    else:
-        st.info("Partidos de ejemplo. Editalos a mano.")
 
-    # ── 1. PARTIDOS ──
+    # ── PARTIDOS ──
     st.subheader("1. Configura los partidos")
     for i in range(14):
         local_actual, visit_actual, resultado = st.session_state.partidos_jornada[i]
@@ -504,11 +425,12 @@ elif seccion == "Quiniela":
                         st.session_state.signos[i] = nuevo
                     else:
                         st.session_state.signos[i] = ordenar_signos(actual + signo)
+                    # Reset apuestas y barita al cambiar signos
                     st.session_state.apuestas_reducidas = None
                     st.session_state.barita_quiniela = 0
                     st.rerun()
 
-    # ── 2. PLENO ──
+    # ── PLENO ──
     st.markdown("---")
     st.markdown("<div class='titulo-seccion-dorado'>PLENO AL 15</div>", unsafe_allow_html=True)
     eq_local, eq_visit, _ = st.session_state.pleno_partido
@@ -540,18 +462,12 @@ elif seccion == "Quiniela":
                 st.session_state.pleno_visit = signo
                 st.rerun()
 
-    # ── 3. RESUMEN ──
+    # ── RESUMEN SIN CALCULAR ──
     st.markdown("---")
     dobles, triples = contar_dobles_triples(st.session_state.signos)
-    apuestas_directas = (2 ** dobles) * (3 ** triples)
+    st.caption("Triples marcados: **" + str(triples) + "** · Dobles marcados: **" + str(dobles) + "**")
 
-    r1, r2, r3, r4 = st.columns(4)
-    r1.metric("Triples", str(triples))
-    r2.metric("Dobles", str(dobles))
-    r3.metric("Apuestas directas", f"{apuestas_directas:,}")
-    r4.metric("Coste directo", f"{round(apuestas_directas * PRECIO_QUINIELA, 2):,.2f} EUR")
-
-    # ── 4. REDUCCION ──
+    # ── REDUCCION ──
     st.markdown("---")
     st.markdown("<div class='titulo-seccion-dorado'>SELECCIONAR REDUCCION</div>", unsafe_allow_html=True)
     c_red = st.columns(4)
@@ -566,7 +482,7 @@ elif seccion == "Quiniela":
                 st.session_state.red_sel = valor
                 st.rerun()
 
-    # ── 5. BOTONES ──
+    # ── BOTONES ──
     st.markdown("---")
     b1, b2 = st.columns(2)
     with b1:
@@ -579,12 +495,16 @@ elif seccion == "Quiniela":
             st.rerun()
     with b2:
         if st.button("Generar reduccion", type="primary", use_container_width=True):
+            # SOLO AHORA calculamos todo
+            dobles, triples = contar_dobles_triples(st.session_state.signos)
+            apuestas_directas = (2 ** dobles) * (3 ** triples)
+            
             if apuestas_directas == 1:
-                st.warning("Marca al menos un doble o triple.")
+                st.warning("Marca al menos un doble o triple para que la reduccion tenga sentido.")
             elif apuestas_directas > MAX_COMBINACIONES_DIRECTAS:
-                st.error("Demasiadas combinaciones (" + f"{apuestas_directas:,}" + "). Max " + f"{MAX_COMBINACIONES_DIRECTAS:,}")
+                st.error("Demasiadas combinaciones (" + f"{apuestas_directas:,}" + "). Max " + f"{MAX_COMBINACIONES_DIRECTAS:,}" + ". Quita algun triple.")
             else:
-                with st.spinner("Calculando..."):
+                with st.spinner("Calculando reduccion al " + st.session_state.red_sel + "..."):
                     combinaciones = generar_combinaciones(st.session_state.signos)
                     apuestas = reducir_por_cobertura(combinaciones, int(st.session_state.red_sel))
                     if len(apuestas) > MAX_APUESTAS_FINALES:
@@ -593,7 +513,7 @@ elif seccion == "Quiniela":
                     st.session_state.barita_quiniela = 0
                 st.rerun()
 
-    # ── 6. RESULTADOS ──
+    # ── RESULTADOS ──
     if st.session_state.apuestas_reducidas:
         st.markdown("---")
 
@@ -605,7 +525,6 @@ elif seccion == "Quiniela":
             "</div>",
             unsafe_allow_html=True,
         )
-
         _, col_b, _ = st.columns([1, 2, 1])
         with col_b:
             if st.button("🪄 MAGIA 🪄", use_container_width=True, key="magia_q"):
@@ -632,7 +551,6 @@ elif seccion == "Quiniela":
             "<div class='titulo-columnas'>" + f"{n_ap:,}" + " COLUMNAS · " + f"{coste:,.2f}" + " EUR</div>",
             unsafe_allow_html=True,
         )
-
         c1, c2 = st.columns(2)
         c1.metric("Apuestas", f"{n_ap:,}")
         c2.metric("Coste final", f"{coste:,.2f} EUR")
@@ -656,7 +574,6 @@ elif seccion == "Quiniela":
             nombres.append("Boleto " + str(inicio) + "-" + str(fin))
 
         pestanas = st.tabs(nombres)
-
         for i, pestana in enumerate(pestanas):
             with pestana:
                 inicio = i * BOLETOS_POR_PESTANA
@@ -686,7 +603,6 @@ elif seccion == "Quiniela":
                                 unsafe_allow_html=True,
                             )
 
-        # DESCARGAR
         st.markdown("---")
         contenido = a_txt_quiniela(apuestas_actuales, st.session_state.pleno_local, st.session_state.pleno_visit)
         st.download_button(
@@ -700,7 +616,7 @@ elif seccion == "Quiniela":
 
 
 # ═══════════════════════════════════════════════
-# JORNADA ACTUAL
+# JORNADA ACTUAL / SIGUIENTE (igual que antes)
 # ═══════════════════════════════════════════════
 elif seccion == "Jornada actual":
     st.title("Jornada actual")
@@ -709,10 +625,10 @@ elif seccion == "Jornada actual":
         st.rerun()
     datos = obtener_jornada("latest")
     if datos and "error" not in datos:
-        partidos, jornada_num, fecha = extraer_partidos(datos)
+        partidos, j, f = extraer_partidos(datos)
         c1, c2 = st.columns(2)
-        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
-        c2.metric("Fecha", str(fecha) if fecha else "-")
+        c1.metric("Jornada", str(j) if j else "-")
+        c2.metric("Fecha", str(f) if f else "-")
         if partidos:
             st.divider()
             for i, (loc, vis, sig) in enumerate(partidos[:14]):
@@ -725,16 +641,12 @@ elif seccion == "Jornada actual":
                 st.session_state.partidos_cargados = True
                 st.success("Cargados.")
         else:
-            st.warning("Sin partidos.")
             with st.expander("Ver crudo"):
                 st.json(datos)
     else:
         st.error("Error: " + str(datos.get("error", "desconocido")))
 
 
-# ═══════════════════════════════════════════════
-# JORNADA SIGUIENTE
-# ═══════════════════════════════════════════════
 elif seccion == "Jornada siguiente":
     st.title("Jornada siguiente")
     if st.button("Refrescar", use_container_width=True, key="ref_next"):
@@ -742,10 +654,10 @@ elif seccion == "Jornada siguiente":
         st.rerun()
     datos = obtener_jornada("next")
     if datos and "error" not in datos:
-        partidos, jornada_num, fecha = extraer_partidos(datos)
+        partidos, j, f = extraer_partidos(datos)
         c1, c2 = st.columns(2)
-        c1.metric("Jornada", str(jornada_num) if jornada_num else "-")
-        c2.metric("Fecha", str(fecha) if fecha else "-")
+        c1.metric("Jornada", str(j) if j else "-")
+        c2.metric("Fecha", str(f) if f else "-")
         if partidos:
             st.divider()
             for i, (loc, vis, _) in enumerate(partidos[:14]):
@@ -758,7 +670,6 @@ elif seccion == "Jornada siguiente":
                 st.session_state.partidos_cargados = True
                 st.success("Cargados.")
         else:
-            st.warning("Sin partidos.")
             with st.expander("Ver crudo"):
                 st.json(datos)
     else:
@@ -766,13 +677,13 @@ elif seccion == "Jornada siguiente":
 
 
 # ═══════════════════════════════════════════════
-# BONOLOTO
+# BONOLOTO (sin calculos hasta Generar)
 # ═══════════════════════════════════════════════
 elif seccion == "Bonoloto":
     st.title("Bonoloto")
-    st.caption("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta - Minimo " + str(MIN_BONOLOTO) + " apuestas")
+    st.caption("Precio: " + str(PRECIO_BONOLOTO) + " EUR/apuesta")
 
-    st.subheader("1. Selecciona numeros (1-49)")
+    st.subheader("1. Numeros (1-49)")
     cols = st.columns(10)
     for n in range(1, 50):
         with cols[(n-1) % 10]:
@@ -785,7 +696,7 @@ elif seccion == "Bonoloto":
                 st.session_state.bono_barita = 0
                 st.rerun()
 
-    st.caption("Seleccionados: " + str(len(st.session_state.bono_nums)))
+    st.caption("Seleccionados: **" + str(len(st.session_state.bono_nums)) + "**")
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
         st.session_state.bono_nums = random.sample(range(1, 50), 6)
@@ -801,20 +712,16 @@ elif seccion == "Bonoloto":
     st.divider()
 
     if len(st.session_state.bono_nums) >= 6:
-        combs = generar_bonoloto(st.session_state.bono_nums)
-        n_ap = len(combs)
-        coste_dir, _ = coste_real(n_ap, PRECIO_BONOLOTO, MIN_BONOLOTO)
-        st.subheader("2. Coste directo")
-        c1, c2 = st.columns(2)
-        c1.metric("Apuestas", f"{n_ap:,}")
-        c2.metric("Coste", f"{coste_dir:,.2f} EUR")
-
         if st.button("Generar combinaciones", type="primary", use_container_width=True, key="gen_bono"):
+            combs = generar_bonoloto(st.session_state.bono_nums)
             st.session_state.bono_combs = combs
             st.session_state.bono_barita = 0
             st.rerun()
 
         if st.session_state.bono_combs:
+            n_dir = len(st.session_state.bono_combs)
+            st.caption("Combinaciones directas: **" + f"{n_dir:,}" + "**")
+
             st.markdown("---")
             st.markdown(
                 "<div class='barita-magica-container'>"
@@ -866,7 +773,7 @@ elif seccion == "Primitiva":
     st.title("Primitiva")
     st.caption("Precio: " + str(PRECIO_PRIMITIVA) + " EUR/apuesta")
 
-    st.subheader("1. Selecciona numeros (1-49)")
+    st.subheader("1. Numeros (1-49)")
     cols = st.columns(10)
     for n in range(1, 50):
         with cols[(n-1) % 10]:
@@ -879,7 +786,7 @@ elif seccion == "Primitiva":
                 st.session_state.pri_barita = 0
                 st.rerun()
 
-    st.caption("Seleccionados: " + str(len(st.session_state.pri_nums)))
+    st.caption("Seleccionados: **" + str(len(st.session_state.pri_nums)) + "**")
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True):
         st.session_state.pri_nums = random.sample(range(1, 50), 6)
@@ -895,20 +802,16 @@ elif seccion == "Primitiva":
     st.divider()
 
     if len(st.session_state.pri_nums) >= 6:
-        combs = generar_primitiva(st.session_state.pri_nums)
-        n_ap = len(combs)
-        coste_dir = round(n_ap * PRECIO_PRIMITIVA, 2)
-        st.subheader("2. Coste directo")
-        c1, c2 = st.columns(2)
-        c1.metric("Apuestas", f"{n_ap:,}")
-        c2.metric("Coste", f"{coste_dir:,.2f} EUR")
-
         if st.button("Generar combinaciones", type="primary", use_container_width=True, key="gen_pri"):
+            combs = generar_primitiva(st.session_state.pri_nums)
             st.session_state.pri_combs = combs
             st.session_state.pri_barita = 0
             st.rerun()
 
         if st.session_state.pri_combs:
+            n_dir = len(st.session_state.pri_combs)
+            st.caption("Combinaciones directas: **" + f"{n_dir:,}" + "**")
+
             st.markdown("---")
             st.markdown(
                 "<div class='barita-magica-container'>"
@@ -984,7 +887,7 @@ elif seccion == "Euromillones":
                 st.session_state.eu_barita = 0
                 st.rerun()
 
-    st.caption("Numeros: " + str(len(st.session_state.eu_nums)) + " Estrellas: " + str(len(st.session_state.eu_est)))
+    st.caption("Numeros: **" + str(len(st.session_state.eu_nums)) + "** · Estrellas: **" + str(len(st.session_state.eu_est)) + "**")
     c1, c2 = st.columns(2)
     if c1.button("Aleatorio", use_container_width=True, key="rand_eu"):
         st.session_state.eu_nums = random.sample(range(1, 51), 5)
@@ -1002,20 +905,16 @@ elif seccion == "Euromillones":
     st.divider()
 
     if len(st.session_state.eu_nums) >= 5 and len(st.session_state.eu_est) >= 2:
-        combs = generar_euromillones(st.session_state.eu_nums, st.session_state.eu_est)
-        n_ap = len(combs)
-        coste_dir = round(n_ap * PRECIO_EUROMILLONES, 2)
-        st.subheader("3. Coste directo")
-        c1, c2 = st.columns(2)
-        c1.metric("Apuestas", f"{n_ap:,}")
-        c2.metric("Coste", f"{coste_dir:,.2f} EUR")
-
         if st.button("Generar combinaciones", type="primary", use_container_width=True, key="gen_eu"):
+            combs = generar_euromillones(st.session_state.eu_nums, st.session_state.eu_est)
             st.session_state.eu_combs = combs
             st.session_state.eu_barita = 0
             st.rerun()
 
         if st.session_state.eu_combs:
+            n_dir = len(st.session_state.eu_combs)
+            st.caption("Combinaciones directas: **" + f"{n_dir:,}" + "**")
+
             st.markdown("---")
             st.markdown(
                 "<div class='barita-magica-container'>"
